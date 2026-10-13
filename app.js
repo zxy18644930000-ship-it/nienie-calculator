@@ -174,7 +174,7 @@ function updateSummary() {
     const k = state.counts[it.id] || 0;
     if (k > 0) parts.push((i + 1) + '号×' + k);
   });
-  el.totalDetail.textContent = parts.join(' · ');
+  el.totalDetail.textContent = parts.join(' + ');
 }
 
 /* ==================== 网格渲染 ==================== */
@@ -499,7 +499,7 @@ function renderRecords() {
 
     const items = document.createElement('div');
     items.className = 'r-items';
-    items.textContent = r.items.map((x) => x.no + '号×' + x.count).join(' · ') + '（共 ' + r.count + ' 件）';
+    items.textContent = r.items.map((x) => x.no + '号×' + x.count).join(' + ') + '（共 ' + r.count + ' 件）';
 
     const total = document.createElement('div');
     total.className = 'r-total';
