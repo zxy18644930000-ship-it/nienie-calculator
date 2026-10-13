@@ -16,6 +16,7 @@ Page({
     discText: '',
     keyPills: [],
     hasKeys: false,
+    cfgScrollTo: '',
     rulesView: [],
     keysView: [],
     modal: { show: false, type: 'input', inputType: 'text', title: '', value: '', placeholder: '', text: '', okText: '确定', danger: false, action: '' },
@@ -302,6 +303,14 @@ Page({
     const { id, field } = e.currentTarget.dataset;
     this._drafts = this._drafts || {};
     this._drafts[id + '.' + field] = e.detail.value;
+  },
+
+  /* 点中输入框时，把所在行滚到滚动区顶部，避免被键盘挡住 */
+  onCfgFocus(e) {
+    const id = e.currentTarget.dataset.id;
+    if (!id) return;
+    this.setData({ cfgScrollTo: 'cfgrow-' + id });
+    setTimeout(() => { this.setData({ cfgScrollTo: '' }); }, 800);
   },
 
   onRuleBlur(e) {

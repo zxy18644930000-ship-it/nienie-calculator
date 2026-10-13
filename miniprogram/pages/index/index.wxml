@@ -28,7 +28,7 @@
     </view>
   </view>
 
-  <scroll-view class="body" scroll-y enhanced show-scrollbar="{{false}}">
+  <scroll-view class="body" scroll-y scroll-into-view="{{cfgScrollTo}}">
     <view wx:if="{{editing}}" class="edit-banner">
       <text class="eb-text">编辑模式：点图片换图 · 点名称/价格可改</text>
       <view class="btn primary eb-btn" bindtap="toggleEdit">完成，去算价</view>
@@ -36,20 +36,20 @@
 
     <view wx:if="{{editing}}" class="disc-cfg">
       <view class="cfg-title">满减（按合计自动生效，取门槛最高的一条）</view>
-      <view class="cfg-row" wx:for="{{rulesView}}" wx:key="id">
+      <view class="cfg-row" wx:for="{{rulesView}}" wx:key="id" id="cfgrow-{{item.id}}">
         <text class="lab">满</text>
-        <input class="cfg-input" type="digit" value="{{item.minText}}" placeholder="100" data-id="{{item.id}}" data-field="min" bindinput="onCfgInput" bindblur="onRuleBlur" />
+        <input class="cfg-input" type="digit" value="{{item.minText}}" placeholder="100" data-id="{{item.id}}" data-field="min" bindfocus="onCfgFocus" bindinput="onCfgInput" bindblur="onRuleBlur" adjust-position="{{false}}" />
         <text class="lab">减</text>
-        <input class="cfg-input" type="digit" value="{{item.offText}}" placeholder="5" data-id="{{item.id}}" data-field="off" bindinput="onCfgInput" bindblur="onRuleBlur" />
+        <input class="cfg-input" type="digit" value="{{item.offText}}" placeholder="5" data-id="{{item.id}}" data-field="off" bindfocus="onCfgFocus" bindinput="onCfgInput" bindblur="onRuleBlur" adjust-position="{{false}}" />
         <text class="cfg-del" data-id="{{item.id}}" catchtap="onDelRule">✕</text>
       </view>
       <view class="cfg-add" bindtap="onAddRule">＋ 加一条满减</view>
 
       <view class="cfg-title cfg-title-gap">快捷键（算价时点一下立减，可多选）</view>
-      <view class="cfg-row" wx:for="{{keysView}}" wx:key="id">
-        <input class="cfg-input txt" type="text" value="{{item.name}}" placeholder="如 会员减一" data-id="{{item.id}}" data-field="name" bindinput="onCfgInput" bindblur="onKeyBlur" />
+      <view class="cfg-row" wx:for="{{keysView}}" wx:key="id" id="cfgrow-{{item.id}}">
+        <input class="cfg-input txt" type="text" value="{{item.name}}" placeholder="如 会员减一" data-id="{{item.id}}" data-field="name" bindfocus="onCfgFocus" bindinput="onCfgInput" bindblur="onKeyBlur" adjust-position="{{false}}" />
         <text class="lab">减</text>
-        <input class="cfg-input" type="digit" value="{{item.offText}}" placeholder="1" data-id="{{item.id}}" data-field="off" bindinput="onCfgInput" bindblur="onKeyBlur" />
+        <input class="cfg-input" type="digit" value="{{item.offText}}" placeholder="1" data-id="{{item.id}}" data-field="off" bindfocus="onCfgFocus" bindinput="onCfgInput" bindblur="onKeyBlur" adjust-position="{{false}}" />
         <text class="cfg-del" data-id="{{item.id}}" catchtap="onDelKey">✕</text>
       </view>
       <view class="cfg-add" bindtap="onAddKey">＋ 加一个快捷键</view>

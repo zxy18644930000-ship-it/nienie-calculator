@@ -4,7 +4,7 @@
     <view class="btn ghost" bindtap="onImport">导入恢复</view>
   </view>
 
-  <scroll-view class="list" scroll-y enhanced show-scrollbar="{{false}}">
+  <scroll-view class="list" scroll-y>
     <view wx:if="{{records.length === 0}}" class="empty">还没有保存过单子</view>
     <view wx:for="{{records}}" wx:key="id" class="record">
       <text wx:if="{{item.orderNo}}" class="r-id">单号 {{item.orderNo}}</text>
