@@ -46,6 +46,21 @@ input { -webkit-user-select: text; user-select: text; }
 
 .brand { font-size: 21px; font-weight: 800; letter-spacing: 1px; }
 
+.order-chip {
+  flex: 1;
+  min-width: 0;
+  text-align: center;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--muted);
+  font-variant-numeric: tabular-nums;
+  letter-spacing: .5px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.order-chip.active { color: var(--ink); }
+
 .top-actions { display: flex; gap: 10px; }
 
 /* ---------- 按钮 ---------- */
@@ -378,6 +393,14 @@ body.editing #btnClear, body.editing #btnSave { display: none; }
   border-radius: 16px;
   padding: 14px 16px 44px;
   box-shadow: var(--shadow);
+}
+.record .r-id {
+  font-size: 13px;
+  font-weight: 700;
+  color: #6B5445;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: .5px;
+  margin-bottom: 5px;
 }
 .record .r-top { display: flex; justify-content: space-between; align-items: center; gap: 10px; }
 .record .r-no { font-size: 15px; font-weight: 700; }

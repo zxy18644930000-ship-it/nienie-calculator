@@ -14,6 +14,11 @@ function fmtTime(ts) {
   const d = new Date(ts);
   return (d.getMonth() + 1) + '-' + pad2(d.getDate()) + ' ' + pad2(d.getHours()) + ':' + pad2(d.getMinutes());
 }
+function genOrderNo() {
+  const d = new Date();
+  return d.getFullYear() + pad2(d.getMonth() + 1) + pad2(d.getDate()) + '-' +
+    pad2(d.getHours()) + pad2(d.getMinutes()) + pad2(d.getSeconds());
+}
 
 /* ==================== 常量 ==================== */
 const DEFAULT_ITEMS = 15;
@@ -26,8 +31,9 @@ const META_RECORDS = 'records';
 const state = {
   items: [],          // [{ id, price, hasImg }]
   counts: {},         // itemId -> 本单件数
-  records: [],        // [{ id, ts, no, items:[{no,price,count}], total, count }]
+  records: [],        // [{ id, ts, orderNo, no, items:[{no,price,count}], total, count }]
   editing: false,
+  orderNo: null,      // 本单编号（首次点选时按系统时间生成，固定不变）
   imgURLs: new Map(), // itemId -> objectURL
 };
 
@@ -36,6 +42,7 @@ let pendingItemId = null;
 /* ==================== 元素 ==================== */
 const el = {
   grid: $('#grid'),
+  orderNoChip: $('#orderNoChip'),
   editBanner: $('#editBanner'),
   btnEditDone: $('#btnEditDone'),
   totalAmount: $('#totalAmount'),
@@ -154,7 +161,19 @@ function openConfirmModal(opts) {
   });
 }
 
-/* ==================== 汇总 ==================== */
+/* ==================== 总价显示 ==================== */
+function renderOrderNo() {
+  el.orderNoChip.textContent = state.orderNo ? ('单号 ' + state.orderNo) : '单号 —';
+  el.orderNoChip.classList.toggle('active', !!state.orderNo);
+}
+
+function ensureOrderNo() {
+  if (!state.orderNo) {
+    state.orderNo = genOrderNo();
+    renderOrderNo();
+  }
+}
+
 function totals() {
   let c = 0;
   let n = 0;
@@ -305,6 +324,7 @@ function changeCount(it, delta) {
   const next = Math.max(0, cur + delta);
   if (next === cur) return;
   state.counts[it.id] = next;
+  ensureOrderNo();
   updateCardVisual(it.id, next);
   updateSummary();
 }
@@ -423,6 +443,7 @@ async function saveOrder() {
   const rec = {
     id: 'r' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6),
     ts: Date.now(),
+    orderNo: state.orderNo || genOrderNo(),
     no: el.customerNo.value.trim(),
     items: state.items
       .map((it, i) => ({ no: i + 1, price: it.price || 0, count: state.counts[it.id] || 0 }))
@@ -435,9 +456,11 @@ async function saveOrder() {
   try { await NienieDB.set(META_RECORDS, state.records); } catch (e) {}
 
   state.counts = {};
+  state.orderNo = null;
   el.customerNo.value = '';
   renderGrid();
   updateSummary();
+  renderOrderNo();
 
   toast('已保存 ¥' + fmtMoney(rec.total));
 }
@@ -446,8 +469,10 @@ function clearOrder() {
   const t = totals();
   if (t.n === 0 && !el.customerNo.value.trim()) {
     state.counts = {};
+    state.orderNo = null;
     renderGrid();
     updateSummary();
+    renderOrderNo();
     return;
   }
   openConfirmModal({
@@ -456,9 +481,11 @@ function clearOrder() {
     okText: '清空',
     onOk: () => {
       state.counts = {};
+      state.orderNo = null;
       el.customerNo.value = '';
       renderGrid();
       updateSummary();
+      renderOrderNo();
     },
   });
 }
@@ -486,6 +513,13 @@ function renderRecords() {
   for (const r of state.records) {
     const card = document.createElement('div');
     card.className = 'record';
+
+    if (r.orderNo) {
+      const rid = document.createElement('div');
+      rid.className = 'r-id';
+      rid.textContent = '单号 ' + r.orderNo;
+      card.appendChild(rid);
+    }
 
     const top = document.createElement('div');
     top.className = 'r-top';
@@ -730,6 +764,7 @@ async function init() {
 
   renderGrid();
   updateSummary();
+  renderOrderNo();
   bindUI();
 
   const blankShop = state.items.every((it) => !it.hasImg && !(it.price > 0));
