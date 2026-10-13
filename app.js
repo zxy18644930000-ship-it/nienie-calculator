@@ -124,7 +124,7 @@ function openInputModal(opts) {
       if (proceed !== false) close();
     };
     ok.addEventListener('click', submit);
-    input.addEventListener('keydown', (e) => { if (e.key === 'Enter') submit(); });
+    input.addEventListener('keydown', (e) => { if (e.key === 'Enter' && !e.isComposing) submit(); });
     input.focus();
     input.select();
   });
@@ -236,6 +236,24 @@ function buildCard(it, idx) {
   badge.textContent = state.counts[it.id] || 0;
   wrap.appendChild(badge);
   card.appendChild(wrap);
+
+  const nameEl = document.createElement('div');
+  nameEl.className = 'pname';
+  if (state.editing) {
+    nameEl.classList.add('editable');
+    if (it.name) {
+      nameEl.textContent = it.name;
+    } else {
+      nameEl.textContent = '点这里填名称';
+      nameEl.classList.add('empty-name');
+    }
+    nameEl.addEventListener('click', () => editName(it));
+  } else if (it.name) {
+    nameEl.textContent = it.name;
+  } else {
+    nameEl.classList.add('hidden-name');
+  }
+  card.appendChild(nameEl);
 
   const foot = document.createElement('div');
   foot.className = 'card-foot';
@@ -358,7 +376,7 @@ async function addItem() {
     toast('最多 ' + MAX_ITEMS + ' 格');
     return;
   }
-  state.items.push({ id: uid(), price: 0, hasImg: false });
+  state.items.push({ id: uid(), price: 0, hasImg: false, name: '' });
   await persistItems();
   renderGrid();
   el.grid.scrollTop = el.grid.scrollHeight;
@@ -429,6 +447,19 @@ function editPrice(it) {
       await persistItems();
       renderGrid();
       updateSummary();
+    },
+  });
+}
+
+function editName(it) {
+  openInputModal({
+    title: '产品名称',
+    value: it.name || '',
+    placeholder: '如 草莓熊（可留空）',
+    onOk: async (val) => {
+      it.name = val.slice(0, 24);
+      await persistItems();
+      renderGrid();
     },
   });
 }
@@ -636,6 +667,7 @@ async function onImportPicked() {
           id: String(it.id || uid()),
           price: Number(it.price) || 0,
           hasImg: !!it.hasImg,
+          name: typeof it.name === 'string' ? it.name : '',
         }));
         state.records = Array.isArray(data.records) ? data.records : [];
         await persistItems();
@@ -702,7 +734,7 @@ function compressImage(file, maxSide = 900, quality = 0.85) {
 
 /* ==================== 初始化 ==================== */
 function makeDefaultItems() {
-  return Array.from({ length: DEFAULT_ITEMS }, () => ({ id: uid(), price: 0, hasImg: false }));
+  return Array.from({ length: DEFAULT_ITEMS }, () => ({ id: uid(), price: 0, hasImg: false, name: '' }));
 }
 
 async function persistItems() {
@@ -718,6 +750,7 @@ async function loadConfig() {
       id: String(it.id || uid()),
       price: Number(it.price) || 0,
       hasImg: !!it.hasImg,
+      name: typeof it.name === 'string' ? it.name : '',
     }));
   } else {
     state.items = makeDefaultItems();
