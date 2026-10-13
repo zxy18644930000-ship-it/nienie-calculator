@@ -1,6 +1,6 @@
 'use strict';
 
-const CACHE = 'nienie-v1';
+const CACHE = 'nienie-v2';
 const ASSETS = [
   './',
   './index.html',
@@ -38,7 +38,7 @@ self.addEventListener('fetch', (e) => {
 
   e.respondWith((async () => {
     try {
-      const resp = await Promise.race([fetch(req), timeout(3000)]);
+      const resp = await Promise.race([fetch(req, { cache: 'no-cache' }), timeout(3000)]);
       if (resp && resp.ok) {
         const copy = resp.clone();
         caches.open(CACHE).then((c) => c.put(req, copy)).catch(() => {});

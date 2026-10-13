@@ -26,14 +26,17 @@ const MAX_ITEMS = 60;
 const MAX_RECORDS = 500;
 const META_ITEMS = 'items';
 const META_RECORDS = 'records';
+const META_DISCOUNTS = 'discounts';
 
 /* ==================== 状态 ==================== */
 const state = {
-  items: [],          // [{ id, price, hasImg }]
+  items: [],          // [{ id, price, hasImg, name }]
   counts: {},         // itemId -> 本单件数
-  records: [],        // [{ id, ts, orderNo, no, items:[{no,price,count}], total, count }]
+  records: [],        // [{ id, ts, orderNo, no, items:[{no,price,count}], total, subtotal, discounts, count }]
   editing: false,
   orderNo: null,      // 本单编号（首次点选时按系统时间生成，固定不变）
+  discounts: { rules: [], keys: [] }, // 满减规则 + 快捷优惠键配置
+  activeKeys: [],     // 本单激活的快捷优惠键 id
   imgURLs: new Map(), // itemId -> objectURL
 };
 
@@ -48,6 +51,13 @@ const el = {
   totalAmount: $('#totalAmount'),
   totalCount: $('#totalCount'),
   totalDetail: $('#totalDetail'),
+  totalDisc: $('#totalDisc'),
+  keyRow: $('#keyRow'),
+  discCfg: $('#discCfg'),
+  ruleList: $('#ruleList'),
+  keyList: $('#keyList'),
+  btnAddRule: $('#btnAddRule'),
+  btnAddKey: $('#btnAddKey'),
   customerNo: $('#customerNo'),
   btnEdit: $('#btnEdit'),
   btnRecords: $('#btnRecords'),
@@ -185,15 +195,38 @@ function totals() {
 }
 
 function updateSummary() {
-  const t = totals();
-  el.totalAmount.textContent = fmtMoney(t.c);
-  el.totalCount.textContent = '共 ' + t.n + ' 件';
+  const d = calcDiscounts();
+  el.totalAmount.textContent = fmtMoney(d.final);
+  el.totalCount.textContent = '共 ' + d.sub.n + ' 件';
   const parts = [];
   state.items.forEach((it, i) => {
     const k = state.counts[it.id] || 0;
     if (k > 0) parts.push((i + 1) + '号×' + k);
   });
   el.totalDetail.textContent = parts.join(' + ');
+  el.totalDisc.textContent = d.list.length
+    ? ('合计 ¥' + fmtMoney(d.sub.c) + ' · ' + d.list.map((x) => x.label).join(' · ') + '（共减 ¥' + fmtMoney(d.offTotal) + '）')
+    : '';
+}
+
+/* 优惠计算：满减取满足条件里门槛最高的一条，再加上激活的快捷优惠键 */
+function calcDiscounts() {
+  const t = totals();
+  const list = [];
+  let best = null;
+  for (const r of state.discounts.rules) {
+    if (!(r.min > 0) || !(r.off > 0)) continue;
+    if (t.c >= cents(r.min) && (!best || r.min > best.min)) best = r;
+  }
+  if (best) {
+    list.push({ label: '满' + fmtMoney(cents(best.min)) + '减' + fmtMoney(cents(best.off)), amount: cents(best.off) });
+  }
+  for (const k of state.discounts.keys) {
+    if (!(k.off > 0) || !state.activeKeys.includes(k.id)) continue;
+    list.push({ label: k.name || '快捷优惠', amount: cents(k.off) });
+  }
+  const offTotal = list.reduce((s, x) => s + x.amount, 0);
+  return { sub: t, list, offTotal, final: Math.max(0, t.c - offTotal) };
 }
 
 /* ==================== 网格渲染 ==================== */
@@ -368,6 +401,9 @@ function setEditing(on) {
   document.body.classList.toggle('editing', on);
   el.btnEdit.textContent = on ? '完成' : '编辑';
   el.editBanner.classList.toggle('hidden', !on);
+  el.discCfg.classList.toggle('hidden', !on);
+  if (on) renderDiscCfg();
+  renderKeyRow();
   renderGrid();
 }
 
@@ -464,10 +500,146 @@ function editName(it) {
   });
 }
 
+/* ==================== 优惠设置 ==================== */
+function normalizeDiscounts(d) {
+  const out = { rules: [], keys: [] };
+  if (d && Array.isArray(d.rules)) {
+    out.rules = d.rules.slice(0, 5).map((r) => ({
+      id: String(r.id || uid()),
+      min: Math.max(0, Math.round((Number(r.min) || 0) * 100) / 100),
+      off: Math.max(0, Math.round((Number(r.off) || 0) * 100) / 100),
+    }));
+  }
+  if (d && Array.isArray(d.keys)) {
+    out.keys = d.keys.slice(0, 6).map((k) => ({
+      id: String(k.id || uid()),
+      name: typeof k.name === 'string' ? k.name.slice(0, 12) : '',
+      off: Math.max(0, Math.round((Number(k.off) || 0) * 100) / 100),
+    }));
+  }
+  return out;
+}
+
+async function persistDiscounts() {
+  try { await NienieDB.set(META_DISCOUNTS, state.discounts); } catch (e) {}
+}
+
+function renderKeyRow() {
+  const row = el.keyRow;
+  row.innerHTML = '';
+  const show = !state.editing && state.discounts.keys.length > 0;
+  row.classList.toggle('hidden', !show);
+  if (!show) return;
+  for (const k of state.discounts.keys) {
+    const b = document.createElement('button');
+    b.type = 'button';
+    const on = state.activeKeys.includes(k.id);
+    b.className = 'key-pill' + (on ? ' on' : '');
+    b.textContent = k.name || '未命名';
+    b.addEventListener('click', () => {
+      const i = state.activeKeys.indexOf(k.id);
+      if (i >= 0) state.activeKeys.splice(i, 1);
+      else state.activeKeys.push(k.id);
+      b.classList.toggle('on', i < 0);
+      updateSummary();
+    });
+    row.appendChild(b);
+  }
+}
+
+function renderDiscCfg() {
+  el.ruleList.innerHTML = '';
+  for (const r of state.discounts.rules) {
+    const row = document.createElement('div');
+    row.className = 'cfg-row';
+    const l1 = document.createElement('span');
+    l1.className = 'lab';
+    l1.textContent = '满';
+    const iMin = document.createElement('input');
+    iMin.type = 'text';
+    iMin.inputMode = 'decimal';
+    iMin.placeholder = '100';
+    iMin.value = r.min ? String(r.min) : '';
+    const l2 = document.createElement('span');
+    l2.className = 'lab';
+    l2.textContent = '减';
+    const iOff = document.createElement('input');
+    iOff.type = 'text';
+    iOff.inputMode = 'decimal';
+    iOff.placeholder = '5';
+    iOff.value = r.off ? String(r.off) : '';
+    const del = document.createElement('button');
+    del.type = 'button';
+    del.className = 'cfg-del';
+    del.textContent = '×';
+    const commit = () => {
+      const mn = parseFloat(iMin.value);
+      const of = parseFloat(iOff.value);
+      r.min = isNaN(mn) || mn < 0 ? 0 : Math.round(mn * 100) / 100;
+      r.off = isNaN(of) || of < 0 ? 0 : Math.round(of * 100) / 100;
+      persistDiscounts();
+      updateSummary();
+    };
+    iMin.addEventListener('change', commit);
+    iOff.addEventListener('change', commit);
+    del.addEventListener('click', () => {
+      state.discounts.rules = state.discounts.rules.filter((x) => x.id !== r.id);
+      persistDiscounts();
+      renderDiscCfg();
+      updateSummary();
+    });
+    row.append(l1, iMin, l2, iOff, del);
+    el.ruleList.appendChild(row);
+  }
+
+  el.keyList.innerHTML = '';
+  for (const k of state.discounts.keys) {
+    const row = document.createElement('div');
+    row.className = 'cfg-row';
+    const iName = document.createElement('input');
+    iName.type = 'text';
+    iName.className = 'txt';
+    iName.placeholder = '如 会员减一';
+    iName.value = k.name || '';
+    const l2 = document.createElement('span');
+    l2.className = 'lab';
+    l2.textContent = '减';
+    const iOff = document.createElement('input');
+    iOff.type = 'text';
+    iOff.inputMode = 'decimal';
+    iOff.placeholder = '1';
+    iOff.value = k.off ? String(k.off) : '';
+    const del = document.createElement('button');
+    del.type = 'button';
+    del.className = 'cfg-del';
+    del.textContent = '×';
+    const commit = () => {
+      k.name = iName.value.trim().slice(0, 12);
+      const of = parseFloat(iOff.value);
+      k.off = isNaN(of) || of < 0 ? 0 : Math.round(of * 100) / 100;
+      persistDiscounts();
+      renderKeyRow();
+      updateSummary();
+    };
+    iName.addEventListener('change', commit);
+    iOff.addEventListener('change', commit);
+    del.addEventListener('click', () => {
+      state.discounts.keys = state.discounts.keys.filter((x) => x.id !== k.id);
+      state.activeKeys = state.activeKeys.filter((x) => x !== k.id);
+      persistDiscounts();
+      renderDiscCfg();
+      renderKeyRow();
+      updateSummary();
+    });
+    row.append(iName, l2, iOff, del);
+    el.keyList.appendChild(row);
+  }
+}
+
 /* ==================== 本单操作 ==================== */
 async function saveOrder() {
-  const t = totals();
-  if (t.n === 0) {
+  const d = calcDiscounts();
+  if (d.sub.n === 0) {
     toast('还没选商品');
     return;
   }
@@ -479,8 +651,10 @@ async function saveOrder() {
     items: state.items
       .map((it, i) => ({ no: i + 1, price: it.price || 0, count: state.counts[it.id] || 0 }))
       .filter((x) => x.count > 0),
-    total: t.c,
-    count: t.n,
+    total: d.final,
+    subtotal: d.sub.c,
+    discounts: d.list.map((x) => ({ label: x.label, amount: x.amount })),
+    count: d.sub.n,
   };
   state.records.unshift(rec);
   if (state.records.length > MAX_RECORDS) state.records.length = MAX_RECORDS;
@@ -488,22 +662,26 @@ async function saveOrder() {
 
   state.counts = {};
   state.orderNo = null;
+  state.activeKeys = [];
   el.customerNo.value = '';
   renderGrid();
   updateSummary();
   renderOrderNo();
+  renderKeyRow();
 
   toast('已保存 ¥' + fmtMoney(rec.total));
 }
 
 function clearOrder() {
   const t = totals();
-  if (t.n === 0 && !el.customerNo.value.trim()) {
+  if (t.n === 0 && !el.customerNo.value.trim() && !state.activeKeys.length) {
     state.counts = {};
     state.orderNo = null;
+    state.activeKeys = [];
     renderGrid();
     updateSummary();
     renderOrderNo();
+    renderKeyRow();
     return;
   }
   openConfirmModal({
@@ -513,10 +691,12 @@ function clearOrder() {
     onOk: () => {
       state.counts = {};
       state.orderNo = null;
+      state.activeKeys = [];
       el.customerNo.value = '';
       renderGrid();
       updateSummary();
       renderOrderNo();
+      renderKeyRow();
     },
   });
 }
@@ -570,6 +750,16 @@ function renderRecords() {
     total.className = 'r-total';
     total.textContent = '¥' + fmtMoney(r.total);
 
+    const disc = document.createElement('div');
+    disc.className = 'r-disc';
+    if (Array.isArray(r.discounts) && r.discounts.length) {
+      const sub = Number(r.subtotal) || (r.total + r.discounts.reduce((s, x) => s + x.amount, 0));
+      disc.textContent = '原价 ¥' + fmtMoney(sub) + ' · ' +
+        r.discounts.map((x) => x.label + ' −¥' + fmtMoney(x.amount)).join(' · ');
+    } else {
+      disc.style.display = 'none';
+    }
+
     const del = document.createElement('button');
     del.type = 'button';
     del.className = 'r-del';
@@ -587,7 +777,7 @@ function renderRecords() {
       });
     });
 
-    card.append(top, items, total, del);
+    card.append(top, items, disc, total, del);
     list.appendChild(card);
   }
 }
@@ -621,6 +811,7 @@ async function exportBackup() {
       exportedAt: new Date().toISOString(),
       items: state.items,
       records: state.records,
+      discounts: state.discounts,
       images,
     };
     const blob = new Blob([JSON.stringify(data)], { type: 'application/json' });
@@ -670,7 +861,10 @@ async function onImportPicked() {
           name: typeof it.name === 'string' ? it.name : '',
         }));
         state.records = Array.isArray(data.records) ? data.records : [];
+        state.discounts = normalizeDiscounts(data.discounts);
+        state.activeKeys = [];
         await persistItems();
+        await persistDiscounts();
         await NienieDB.set(META_RECORDS, state.records);
 
         const images = data.images || {};
@@ -689,6 +883,8 @@ async function onImportPicked() {
         renderGrid();
         updateSummary();
         renderRecords();
+        renderKeyRow();
+        if (state.editing) renderDiscCfg();
         toast('已从备份恢复');
       } catch (e) {
         toast('导入出错了，数据可能没恢复完整');
@@ -767,6 +963,10 @@ async function loadConfig() {
       it.hasImg = false;
     }
   }
+
+  let disc = null;
+  try { disc = await NienieDB.get(META_DISCOUNTS); } catch (e) {}
+  state.discounts = normalizeDiscounts(disc);
 }
 
 function bindUI() {
@@ -776,6 +976,18 @@ function bindUI() {
   el.btnSave.addEventListener('click', saveOrder);
   el.btnClear.addEventListener('click', clearOrder);
   el.btnAddItem.addEventListener('click', addItem);
+  el.btnAddRule.addEventListener('click', () => {
+    if (state.discounts.rules.length >= 5) { toast('满减最多 5 条'); return; }
+    state.discounts.rules.push({ id: uid(), min: 0, off: 0 });
+    persistDiscounts();
+    renderDiscCfg();
+  });
+  el.btnAddKey.addEventListener('click', () => {
+    if (state.discounts.keys.length >= 6) { toast('快捷键最多 6 个'); return; }
+    state.discounts.keys.push({ id: uid(), name: '', off: 0 });
+    persistDiscounts();
+    renderDiscCfg();
+  });
   el.btnRecordsBack.addEventListener('click', closeRecords);
   el.btnExport.addEventListener('click', exportBackup);
   el.btnImport.addEventListener('click', () => { el.importPicker.value = ''; el.importPicker.click(); });
@@ -798,6 +1010,7 @@ async function init() {
   renderGrid();
   updateSummary();
   renderOrderNo();
+  renderKeyRow();
   bindUI();
 
   const blankShop = state.items.every((it) => !it.hasImg && !(it.price > 0));

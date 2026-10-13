@@ -32,16 +32,27 @@
         <div class="total-amount">¥<span id="totalAmount">0</span></div>
       </div>
       <div class="display-detail" id="totalDetail"></div>
+      <div class="display-disc" id="totalDisc"></div>
     </div>
     <div class="cust">
       <label for="customerNo">顾客编号（选填）</label>
       <input id="customerNo" type="text" placeholder="订单尾号 / 昵称" autocomplete="off" spellcheck="false">
     </div>
+    <div id="keyRow" class="key-row hidden"></div>
   </section>
 
   <section id="editBanner" class="edit-banner hidden">
     <div class="eb-text">编辑模式：点图片换图 · 点名称/价格可改 · 底部可加格</div>
     <button id="btnEditDone" class="btn primary eb-btn" type="button">完成，去算价</button>
+  </section>
+
+  <section id="discCfg" class="disc-cfg hidden">
+    <div class="cfg-title">满减（按合计自动生效，取门槛最高的一条）</div>
+    <div id="ruleList" class="cfg-list"></div>
+    <button id="btnAddRule" class="btn cfg-add" type="button">＋ 加一条满减</button>
+    <div class="cfg-title" style="margin-top:10px;">快捷键（算价时点一下立减，可多选）</div>
+    <div id="keyList" class="cfg-list"></div>
+    <button id="btnAddKey" class="btn cfg-add" type="button">＋ 加一个快捷键</button>
   </section>
 
   <main id="grid" class="grid"></main>
