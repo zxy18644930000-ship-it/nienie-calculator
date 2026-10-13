@@ -101,15 +101,27 @@ input { -webkit-user-select: text; user-select: text; }
 
 .display {
   display: flex;
-  align-items: baseline;
-  justify-content: space-between;
-  gap: 14px;
+  flex-direction: column;
+  gap: 6px;
   background: #FFFBF7;
   border: 2px solid var(--line);
   border-radius: 14px;
   padding: 8px 16px 10px;
 }
+.display-top {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 14px;
+}
 .display-count { font-size: 15px; font-weight: 600; color: var(--muted); white-space: nowrap; }
+.display-detail {
+  font-size: 14px;
+  color: var(--muted);
+  line-height: 1.5;
+  word-break: break-all;
+}
+.display-detail:empty { display: none; }
 .total-amount {
   font-size: 44px;
   line-height: 1.1;
@@ -121,8 +133,8 @@ input { -webkit-user-select: text; user-select: text; }
 .cust { display: flex; align-items: center; gap: 10px; }
 .cust label { font-size: 14px; font-weight: 600; color: var(--muted); white-space: nowrap; }
 .cust input {
-  flex: 1;
-  min-width: 0;
+  flex: 0 0 33%;
+  min-width: 150px;
   font-family: inherit;
   font-size: 16px;
   padding: 9px 12px;

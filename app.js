@@ -40,6 +40,7 @@ const el = {
   btnEditDone: $('#btnEditDone'),
   totalAmount: $('#totalAmount'),
   totalCount: $('#totalCount'),
+  totalDetail: $('#totalDetail'),
   customerNo: $('#customerNo'),
   btnEdit: $('#btnEdit'),
   btnRecords: $('#btnRecords'),
@@ -168,6 +169,12 @@ function updateSummary() {
   const t = totals();
   el.totalAmount.textContent = fmtMoney(t.c);
   el.totalCount.textContent = '共 ' + t.n + ' 件';
+  const parts = [];
+  state.items.forEach((it, i) => {
+    const k = state.counts[it.id] || 0;
+    if (k > 0) parts.push((i + 1) + '号×' + k);
+  });
+  el.totalDetail.textContent = parts.join(' · ');
 }
 
 /* ==================== 网格渲染 ==================== */
