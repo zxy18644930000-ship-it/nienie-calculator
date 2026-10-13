@@ -4,8 +4,8 @@
       <text class="brand">捏捏乐算价</text>
       <text class="order-chip {{orderNo ? 'active' : ''}}">{{orderNo ? '单号 ' + orderNo : '单号 —'}}</text>
       <view class="top-actions">
-        <button class="btn ghost" bindtap="openRecords">记录</button>
-        <button class="btn ghost" bindtap="toggleEdit">{{editing ? '完成' : '编辑'}}</button>
+        <view class="btn ghost" bindtap="openRecords">记录</view>
+        <view class="btn ghost" bindtap="toggleEdit">{{editing ? '完成' : '编辑'}}</view>
       </view>
     </view>
 
@@ -22,7 +22,7 @@
         <text class="cust-label">顾客编号（选填）</text>
         <input class="cust-input" value="{{custNo}}" placeholder="订单尾号 / 昵称" bindinput="onCustInput" confirm-type="done" />
       </view>
-      <view class="key-row" wx:if="{{keyPills.length > 0}}">
+      <view class="key-row" wx:if="{{hasKeys}}">
         <view wx:for="{{keyPills}}" wx:key="id" class="key-pill {{item.on ? 'on' : ''}}" data-id="{{item.id}}" bindtap="toggleKey">{{item.name}}</view>
       </view>
     </view>
@@ -31,7 +31,7 @@
   <scroll-view class="body" scroll-y enhanced show-scrollbar="{{false}}">
     <view wx:if="{{editing}}" class="edit-banner">
       <text class="eb-text">编辑模式：点图片换图 · 点名称/价格可改</text>
-      <button class="btn primary eb-btn" bindtap="toggleEdit">完成，去算价</button>
+      <view class="btn primary eb-btn" bindtap="toggleEdit">完成，去算价</view>
     </view>
 
     <view wx:if="{{editing}}" class="disc-cfg">
@@ -81,9 +81,9 @@
   </scroll-view>
 
   <view class="bottombar">
-    <button wx:if="{{!editing}}" class="btn secondary bar-btn" bindtap="onClearTap">清空</button>
-    <button wx:if="{{!editing}}" class="btn primary bar-btn save-btn" bindtap="saveOrder">保存本单</button>
-    <button wx:if="{{editing}}" class="btn primary bar-btn" bindtap="addItem">＋ 加一格</button>
+    <view wx:if="{{!editing}}" class="btn secondary bar-btn" bindtap="onClearTap">清空</view>
+    <view wx:if="{{!editing}}" class="btn primary bar-btn save-btn" bindtap="saveOrder">保存本单</view>
+    <view wx:if="{{editing}}" class="btn primary bar-btn" bindtap="addItem">＋ 加一格</view>
   </view>
 </view>
 
@@ -95,8 +95,8 @@
            focus="{{true}}" bindinput="onModalInput" confirm-type="done" bindconfirm="submitModal" />
     <text wx:if="{{modal.text}}" class="modal-text">{{modal.text}}</text>
     <view class="modal-actions">
-      <button class="btn secondary modal-btn" bindtap="closeModal">取消</button>
-      <button class="btn {{modal.danger ? 'danger' : 'primary'}} modal-btn" bindtap="submitModal">{{modal.okText}}</button>
+      <view class="btn secondary modal-btn" bindtap="closeModal">取消</view>
+      <view class="btn {{modal.danger ? 'danger' : 'primary'}} modal-btn" bindtap="submitModal">{{modal.okText}}</view>
     </view>
   </view>
 </view>

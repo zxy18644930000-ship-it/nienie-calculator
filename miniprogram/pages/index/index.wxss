@@ -14,7 +14,7 @@
   align-items: center;
   gap: 12rpx;
 }
-.brand { font-size: 38rpx; font-weight: 800; letter-spacing: 2rpx; }
+.brand { font-size: 38rpx; font-weight: 800; letter-spacing: 2rpx; white-space: nowrap; flex: none; }
 .order-chip {
   flex: 1;
   text-align: center;

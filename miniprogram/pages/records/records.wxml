@@ -1,7 +1,7 @@
 <view class="page">
   <view class="tools">
-    <button class="btn ghost" bindtap="onExport">导出备份</button>
-    <button class="btn ghost" bindtap="onImport">导入恢复</button>
+    <view class="btn ghost" bindtap="onExport">导出备份</view>
+    <view class="btn ghost" bindtap="onImport">导入恢复</view>
   </view>
 
   <scroll-view class="list" scroll-y enhanced show-scrollbar="{{false}}">
@@ -26,8 +26,8 @@
     <view class="modal-title">{{modal.title}}</view>
     <text wx:if="{{modal.text}}" class="modal-text">{{modal.text}}</text>
     <view class="modal-actions">
-      <button class="btn secondary modal-btn" bindtap="closeModal">取消</button>
-      <button class="btn {{modal.danger ? 'danger' : 'primary'}} modal-btn" bindtap="submitModal">{{modal.okText}}</button>
+      <view class="btn secondary modal-btn" bindtap="closeModal">取消</view>
+      <view class="btn {{modal.danger ? 'danger' : 'primary'}} modal-btn" bindtap="submitModal">{{modal.okText}}</view>
     </view>
   </view>
 </view>

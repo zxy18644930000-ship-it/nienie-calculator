@@ -15,6 +15,7 @@ Page({
     detailText: '',
     discText: '',
     keyPills: [],
+    hasKeys: false,
     rulesView: [],
     keysView: [],
     modal: { show: false, type: 'input', inputType: 'text', title: '', value: '', placeholder: '', text: '', okText: '确定', danger: false, action: '' },
@@ -92,6 +93,7 @@ Page({
       rulesView: m.discounts.rules.map((r) => ({ id: r.id, minText: r.min ? String(r.min) : '', offText: r.off ? String(r.off) : '' })),
       keysView: m.discounts.keys.map((k) => ({ id: k.id, name: k.name || '', offText: k.off ? String(k.off) : '' })),
       keyPills: m.discounts.keys.map((k) => ({ id: k.id, name: k.name || '未命名', on: m.activeKeys.indexOf(k.id) >= 0 })),
+      hasKeys: m.discounts.keys.length > 0,
     });
   },
 
@@ -177,8 +179,12 @@ Page({
 
   /* ==================== 改价 / 改名 / 删格 / 清空 ==================== */
   onPriceTap(e) {
-    if (!this.editing) return;
-    const it = this.model.items.find((x) => x.id === e.currentTarget.dataset.id);
+    const id = e.currentTarget.dataset.id;
+    if (!this.editing) {
+      this.changeCount(id, +1);
+      return;
+    }
+    const it = this.model.items.find((x) => x.id === id);
     if (!it) return;
     this._modalTarget = it;
     this._modalValue = it.price ? String(it.price) : '';
@@ -186,8 +192,12 @@ Page({
   },
 
   onNameTap(e) {
-    if (!this.editing) return;
-    const it = this.model.items.find((x) => x.id === e.currentTarget.dataset.id);
+    const id = e.currentTarget.dataset.id;
+    if (!this.editing) {
+      this.changeCount(id, +1);
+      return;
+    }
+    const it = this.model.items.find((x) => x.id === id);
     if (!it) return;
     this._modalTarget = it;
     this._modalValue = it.name || '';
