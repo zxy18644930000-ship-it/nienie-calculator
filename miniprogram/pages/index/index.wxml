@@ -62,7 +62,7 @@
             bindtap="onCardTap" bindlongpress="onCardLongPress">
         <text class="no">{{index + 1}}号</text>
         <view class="imgwrap">
-          <image wx:if="{{item.hasImg}}" class="img" src="{{item.imgPath}}" mode="aspectFill" />
+          <image wx:if="{{item.hasImg}}" class="img" src="{{item.imgPath}}" mode="aspectFill" binderror="onImgError" />
           <view wx:else class="empty">{{editing ? '点这里放图片' : '还没设置'}}</view>
           <view wx:if="{{item.count > 0}}" class="badge">{{item.count}}</view>
           <view wx:if="{{editing && item.hasImg}}" class="editmask">换图</view>

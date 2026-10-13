@@ -149,12 +149,16 @@ Page({
     wx.chooseMedia({
       count: 1,
       mediaType: ['image'],
-      sizeType: ['compressed'],
       sourceType: ['album', 'camera'],
       success: (res) => {
-        const temp = res.tempFiles[0].tempFilePath;
-        const saveTo = (srcPath) => {
-          const dest = wx.env.USER_DATA_PATH + '/img_' + it.id + '_' + Date.now() + '.jpg';
+        const f = res.tempFiles && res.tempFiles[0];
+        if (!f || !f.tempFilePath) {
+          wx.showToast({ title: '没拿到照片，再试一次', icon: 'none' });
+          return;
+        }
+        const temp = f.tempFilePath;
+        const dest = wx.env.USER_DATA_PATH + '/img_' + it.id + '_' + Date.now() + '.jpg';
+        const finalize = (srcPath) => {
           fs.copyFile({
             srcPath,
             destPath: dest,
@@ -164,18 +168,35 @@ Page({
               it.hasImg = true;
               store.saveItems(this.model.items);
               this.syncAll();
+              wx.showToast({ title: '图片已放好', icon: 'none' });
             },
-            fail: () => wx.showToast({ title: '图片保存失败', icon: 'none' }),
+            fail: (err) => {
+              const msg = (err && err.errMsg) || '';
+              wx.showModal({ title: '图片没保存成功', content: msg || '请再试一次', showCancel: false });
+            },
           });
         };
         wx.compressImage({
           src: temp,
           quality: 80,
-          success: (r) => saveTo(r.tempFilePath),
-          fail: () => saveTo(temp),
+          success: (r) => finalize(r.tempFilePath),
+          fail: () => finalize(temp),
+        });
+      },
+      fail: (err) => {
+        const msg = (err && err.errMsg) || '';
+        if (msg.indexOf('cancel') >= 0) return;
+        wx.showModal({
+          title: '没能打开相机/相册',
+          content: (msg || '') + '\n\n请检查：iPad 设置 → 微信 → 相机、照片 权限是否已打开',
+          showCancel: false,
         });
       },
     });
+  },
+
+  onImgError() {
+    wx.showToast({ title: '图片加载失败，请重新选一次', icon: 'none' });
   },
 
   /* ==================== 改价 / 改名 / 删格 / 清空 ==================== */
