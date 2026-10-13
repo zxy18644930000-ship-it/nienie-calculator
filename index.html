@@ -25,14 +25,19 @@
   </header>
 
   <section class="summary">
+    <div class="display">
+      <div class="display-count" id="totalCount">共 0 件</div>
+      <div class="total-amount">¥<span id="totalAmount">0</span></div>
+    </div>
     <div class="cust">
       <label for="customerNo">顾客编号（选填）</label>
       <input id="customerNo" type="text" placeholder="订单尾号 / 昵称" autocomplete="off" spellcheck="false">
     </div>
-    <div class="total">
-      <div class="total-amount">¥<span id="totalAmount">0</span></div>
-      <div class="total-count" id="totalCount">共 0 件</div>
-    </div>
+  </section>
+
+  <section id="editBanner" class="edit-banner hidden">
+    <div class="eb-text">编辑模式：点图片换图 · 点价格改价 · 底部可加格</div>
+    <button id="btnEditDone" class="btn primary eb-btn" type="button">完成，去算价</button>
   </section>
 
   <main id="grid" class="grid"></main>

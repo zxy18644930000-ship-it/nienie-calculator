@@ -31,12 +31,13 @@ const state = {
   imgURLs: new Map(), // itemId -> objectURL
 };
 
-let firstSaveTipPending = true;
 let pendingItemId = null;
 
 /* ==================== 元素 ==================== */
 const el = {
   grid: $('#grid'),
+  editBanner: $('#editBanner'),
+  btnEditDone: $('#btnEditDone'),
   totalAmount: $('#totalAmount'),
   totalCount: $('#totalCount'),
   customerNo: $('#customerNo'),
@@ -210,16 +211,37 @@ function buildCard(it, idx) {
   wrap.appendChild(badge);
   card.appendChild(wrap);
 
+  const foot = document.createElement('div');
+  foot.className = 'card-foot';
+
+  if (!state.editing) {
+    const minus = document.createElement('button');
+    minus.type = 'button';
+    minus.className = 'minus' + ((state.counts[it.id] || 0) > 0 ? '' : ' off');
+    minus.textContent = '−';
+    minus.addEventListener('pointerdown', (e) => e.stopPropagation());
+    minus.addEventListener('pointerup', (e) => e.stopPropagation());
+    minus.addEventListener('pointercancel', (e) => e.stopPropagation());
+    minus.addEventListener('click', (e) => {
+      e.stopPropagation();
+      changeCount(it, -1);
+    });
+    foot.appendChild(minus);
+  }
+
   const price = document.createElement('div');
   price.className = 'price';
   price.textContent = '¥' + fmtMoney(cents(it.price));
-  card.appendChild(price);
+  foot.appendChild(price);
+  card.appendChild(foot);
 
   if (state.editing) {
-    const overlay = document.createElement('div');
-    overlay.className = 'editbtn';
-    overlay.textContent = '换图';
-    wrap.appendChild(overlay);
+    if (it.hasImg) {
+      const overlay = document.createElement('div');
+      overlay.className = 'editbtn';
+      overlay.textContent = '换图';
+      wrap.appendChild(overlay);
+    }
     wrap.addEventListener('click', () => pickImage(it));
 
     const del = document.createElement('div');
@@ -286,6 +308,8 @@ function updateCardVisual(id, n) {
   card.classList.toggle('sel', n > 0);
   const badge = card.querySelector('.badge');
   badge.textContent = n;
+  const minus = card.querySelector('.minus');
+  if (minus) minus.classList.toggle('off', n === 0);
   if (n > 0) {
     badge.classList.remove('bump');
     void badge.offsetWidth;
@@ -294,12 +318,12 @@ function updateCardVisual(id, n) {
 }
 
 /* ==================== 编辑模式 ==================== */
-function setEditing(on, silent) {
+function setEditing(on) {
   state.editing = on;
   document.body.classList.toggle('editing', on);
   el.btnEdit.textContent = on ? '完成' : '编辑';
+  el.editBanner.classList.toggle('hidden', !on);
   renderGrid();
-  if (on && !silent) toast('点图片换图 · 点价格改价 · 底部加格');
 }
 
 async function addItem() {
@@ -408,12 +432,7 @@ async function saveOrder() {
   renderGrid();
   updateSummary();
 
-  if (firstSaveTipPending) {
-    firstSaveTipPending = false;
-    toast('已保存 ¥' + fmtMoney(rec.total) + ' · 长按图片可以减 1');
-  } else {
-    toast('已保存 ¥' + fmtMoney(rec.total));
-  }
+  toast('已保存 ¥' + fmtMoney(rec.total));
 }
 
 function clearOrder() {
@@ -678,6 +697,7 @@ async function loadConfig() {
 
 function bindUI() {
   el.btnEdit.addEventListener('click', () => setEditing(!state.editing));
+  el.btnEditDone.addEventListener('click', () => setEditing(false));
   el.btnRecords.addEventListener('click', openRecords);
   el.btnSave.addEventListener('click', saveOrder);
   el.btnClear.addEventListener('click', clearOrder);
@@ -705,11 +725,8 @@ async function init() {
   updateSummary();
   bindUI();
 
-  const emptyShop = state.items.every((it) => !it.hasImg);
-  if (emptyShop) {
-    setEditing(true, true);
-    setTimeout(() => toast('先给每格选好图片、填好价格，再点「完成」开单'), 400);
-  }
+  const blankShop = state.items.every((it) => !it.hasImg && !(it.price > 0));
+  if (blankShop) setEditing(true);
 
   registerSW();
 }
