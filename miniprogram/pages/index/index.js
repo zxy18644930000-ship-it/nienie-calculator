@@ -1,6 +1,5 @@
 const { uid, cents, fmtMoney, genOrderNo } = require('../../utils/util');
 const store = require('../../utils/store');
-const fs = wx.getFileSystemManager();
 
 const MAX_ITEMS = 60;
 
@@ -9,7 +8,6 @@ Page({
     items: [],
     editing: false,
     orderNo: '',
-    custNo: '',
     totalText: '0',
     countText: '共 0 件',
     detailText: '',
@@ -30,7 +28,7 @@ Page({
       activeKeys: [],
       orderNo: null,
     };
-    this.editing = this.model.items.every((it) => !it.hasImg && !(it.price > 0));
+    this.editing = this.model.items.every((it) => !(it.price > 0));
     this.syncAll();
   },
 
@@ -69,9 +67,6 @@ Page({
     const m = this.model;
     const itemsView = m.items.map((it) => ({
       id: it.id,
-      hasImg: !!it.hasImg && !!it.imgPath,
-      imgPath: it.imgPath || '',
-      name: it.name || '',
       priceText: fmtMoney(cents(it.price)),
       count: m.counts[it.id] || 0,
     }));
@@ -99,10 +94,6 @@ Page({
   },
 
   /* ==================== 基础交互 ==================== */
-  onCustInput(e) {
-    this.setData({ custNo: e.detail.value });
-  },
-
   toggleEdit() {
     this.editing = !this.editing;
     this.syncAll();
@@ -112,8 +103,8 @@ Page({
     const m = this.model;
     const it = m.items.find((x) => x.id === id);
     if (!it) return;
-    if (delta > 0 && !it.hasImg && !(it.price > 0)) {
-      wx.showToast({ title: '这格还没设置，点右上「编辑」', icon: 'none' });
+    if (delta > 0 && !(it.price > 0)) {
+      wx.showToast({ title: '这格还没定价，点右上「编辑」填价格', icon: 'none' });
       return;
     }
     const cur = m.counts[id] || 0;
@@ -126,13 +117,8 @@ Page({
   },
 
   onCardTap(e) {
-    const id = e.currentTarget.dataset.id;
-    if (this.editing) {
-      const it = this.model.items.find((x) => x.id === id);
-      if (it) this.pickImage(it);
-      return;
-    }
-    this.changeCount(id, +1);
+    if (this.editing) return;
+    this.changeCount(e.currentTarget.dataset.id, +1);
   },
 
   onCardLongPress(e) {
@@ -145,69 +131,7 @@ Page({
     this.changeCount(e.currentTarget.dataset.id, -1);
   },
 
-  pickImage(it) {
-    const itemId = it.id;
-    wx.chooseMedia({
-      count: 1,
-      mediaType: ['image'],
-      sourceType: ['album', 'camera'],
-      success: (res) => {
-        const f = res.tempFiles && res.tempFiles[0];
-        if (!f || !f.tempFilePath) {
-          wx.showToast({ title: '没拿到照片，再试一次', icon: 'none' });
-          return;
-        }
-        const temp = f.tempFilePath;
-        const dest = wx.env.USER_DATA_PATH + '/img_' + itemId + '_' + Date.now() + '.jpg';
-        wx.compressImage({
-          src: temp,
-          quality: 80,
-          success: (r) => this.applyPickedImage(itemId, r.tempFilePath, dest),
-          fail: () => this.applyPickedImage(itemId, temp, dest),
-        });
-      },
-      fail: (err) => {
-        const msg = (err && err.errMsg) || '';
-        if (msg.indexOf('cancel') >= 0) return;
-        wx.showModal({
-          title: '没能打开相机/相册',
-          content: (msg || '') + '\n\n请检查：iPad 设置 → 微信 → 相机、照片 权限是否已打开',
-          showCancel: false,
-        });
-      },
-    });
-  },
-
-  /* 按编号在当前生效的列表里重新查找，避免“拍照期间列表被重载”导致照片贴到作废副本上 */
-  applyPickedImage(itemId, srcPath, dest) {
-    const live = this.model.items.find((x) => x.id === itemId);
-    if (!live) {
-      wx.showToast({ title: '找不到这一格，请重新操作', icon: 'none' });
-      return;
-    }
-    fs.copyFile({
-      srcPath,
-      destPath: dest,
-      success: () => {
-        store.deleteImage(live.imgPath);
-        live.imgPath = dest;
-        live.hasImg = true;
-        store.saveItems(this.model.items);
-        this.syncAll();
-        wx.showToast({ title: '图片已放好', icon: 'none' });
-      },
-      fail: (err) => {
-        const msg = (err && err.errMsg) || '';
-        wx.showModal({ title: '图片没保存成功', content: msg || '请再试一次', showCancel: false });
-      },
-    });
-  },
-
-  onImgError() {
-    wx.showToast({ title: '图片加载失败，请重新选一次', icon: 'none' });
-  },
-
-  /* ==================== 改价 / 改名 / 删格 / 清空 ==================== */
+  /* ==================== 改价 / 删格 / 清空 ==================== */
   onPriceTap(e) {
     const id = e.currentTarget.dataset.id;
     if (!this.editing) {
@@ -221,30 +145,17 @@ Page({
     this.setData({ modal: { show: true, type: 'input', inputType: 'digit', title: '改价（元）', value: this._modalValue, placeholder: '如 28', text: '', okText: '确定', danger: false, action: 'price' } });
   },
 
-  onNameTap(e) {
-    const id = e.currentTarget.dataset.id;
-    if (!this.editing) {
-      this.changeCount(id, +1);
-      return;
-    }
-    const it = this.model.items.find((x) => x.id === id);
-    if (!it) return;
-    this._modalTargetId = id;
-    this._modalValue = it.name || '';
-    this.setData({ modal: { show: true, type: 'input', inputType: 'text', title: '产品名称', value: this._modalValue, placeholder: '如 草莓熊（可留空）', text: '', okText: '确定', danger: false, action: 'name' } });
-  },
-
   onDeleteTap(e) {
     const id = e.currentTarget.dataset.id;
     const it = this.model.items.find((x) => x.id === id);
     if (!it) return;
     this._modalTargetId = id;
-    this.setData({ modal: { show: true, type: 'confirm', inputType: 'text', title: '删除这一格？', value: '', placeholder: '', text: '这一格的图片和价格会一起删掉。', okText: '删除', danger: true, action: 'deleteItem' } });
+    this.setData({ modal: { show: true, type: 'confirm', inputType: 'text', title: '删除这一格？', value: '', placeholder: '', text: '这一格的价格设置会一起删掉。', okText: '删除', danger: true, action: 'deleteItem' } });
   },
 
   onClearTap() {
     const d = this.calcDiscounts();
-    if (d.sub.n === 0 && !this.data.custNo.trim() && this.model.activeKeys.length === 0) {
+    if (d.sub.n === 0 && this.model.activeKeys.length === 0) {
       this.model.counts = {};
       this.model.orderNo = null;
       this.model.activeKeys = [];
@@ -278,12 +189,6 @@ Page({
       store.saveItems(this.model.items);
       this.closeModal();
       this.syncAll();
-    } else if (action === 'name') {
-      if (!target) { this.closeModal(); return; }
-      target.name = String(this._modalValue || '').trim().slice(0, 24);
-      store.saveItems(this.model.items);
-      this.closeModal();
-      this.syncAll();
     } else if (action === 'deleteItem') {
       if (!target) { this.closeModal(); return; }
       store.deleteImage(target.imgPath);
@@ -296,7 +201,6 @@ Page({
       this.model.counts = {};
       this.model.orderNo = null;
       this.model.activeKeys = [];
-      this.setData({ custNo: '' });
       this.closeModal();
       this.syncAll();
     }
@@ -414,7 +318,7 @@ Page({
       id: 'r' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6),
       ts: Date.now(),
       orderNo: m.orderNo || genOrderNo(),
-      no: this.data.custNo.trim(),
+      no: '',
       items: m.items
         .map((it, i) => ({ no: i + 1, price: it.price || 0, count: m.counts[it.id] || 0 }))
         .filter((x) => x.count > 0),
@@ -430,7 +334,6 @@ Page({
     m.counts = {};
     m.orderNo = null;
     m.activeKeys = [];
-    this.setData({ custNo: '' });
     this.syncAll();
     wx.showToast({ title: '已保存 ¥' + fmtMoney(rec.total), icon: 'none' });
   },

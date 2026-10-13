@@ -9,7 +9,7 @@
     <view wx:for="{{records}}" wx:key="id" class="record">
       <text wx:if="{{item.orderNo}}" class="r-id">单号 {{item.orderNo}}</text>
       <view class="r-top">
-        <text class="r-no {{item.no ? '' : 'muted'}}">{{item.no ? '顾客 ' + item.no : '未填编号'}}</text>
+        <text class="r-no muted">{{item.no ? '顾客 ' + item.no : ''}}</text>
         <text class="r-time">{{item.timeText}}</text>
       </view>
       <text class="r-items">{{item.itemsText}}</text>
