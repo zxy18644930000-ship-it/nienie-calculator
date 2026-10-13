@@ -76,10 +76,13 @@ page {
 .modal-title { font-size: 34rpx; font-weight: 800; margin-bottom: 24rpx; }
 .modal-input {
   width: 100%;
+  height: 88rpx;
+  line-height: 88rpx;
   font-size: 40rpx;
   font-weight: 700;
   text-align: center;
-  padding: 16rpx 20rpx;
+  color: #35261B;
+  padding: 0 20rpx;
   border-radius: 22rpx;
   border: 3rpx solid #F1E3D7;
   background: #FFFBF7;

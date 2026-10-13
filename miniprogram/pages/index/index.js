@@ -297,11 +297,21 @@ Page({
     this.syncAll();
   },
 
+  /* 边输入边记录（不 setData，避免重渲染打断输入；失焦时优先采用记录值） */
+  onCfgInput(e) {
+    const { id, field } = e.currentTarget.dataset;
+    this._drafts = this._drafts || {};
+    this._drafts[id + '.' + field] = e.detail.value;
+  },
+
   onRuleBlur(e) {
     const { id, field } = e.currentTarget.dataset;
     const r = this.model.discounts.rules.find((x) => x.id === id);
     if (!r) return;
-    const v = parseFloat(e.detail.value);
+    const key = id + '.' + field;
+    const raw = (this._drafts && this._drafts[key] !== undefined) ? this._drafts[key] : e.detail.value;
+    if (this._drafts) delete this._drafts[key];
+    const v = parseFloat(raw);
     r[field] = isNaN(v) || v < 0 ? 0 : Math.round(v * 100) / 100;
     store.saveDiscounts(this.model.discounts);
     this.syncAll();
@@ -329,10 +339,13 @@ Page({
     const { id, field } = e.currentTarget.dataset;
     const k = this.model.discounts.keys.find((x) => x.id === id);
     if (!k) return;
+    const key = id + '.' + field;
+    const raw = (this._drafts && this._drafts[key] !== undefined) ? this._drafts[key] : e.detail.value;
+    if (this._drafts) delete this._drafts[key];
     if (field === 'name') {
-      k.name = String(e.detail.value || '').trim().slice(0, 12);
+      k.name = String(raw || '').trim().slice(0, 12);
     } else {
-      const v = parseFloat(e.detail.value);
+      const v = parseFloat(raw);
       k.off = isNaN(v) || v < 0 ? 0 : Math.round(v * 100) / 100;
     }
     store.saveDiscounts(this.model.discounts);

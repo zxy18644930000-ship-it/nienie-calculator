@@ -38,18 +38,18 @@
       <view class="cfg-title">满减（按合计自动生效，取门槛最高的一条）</view>
       <view class="cfg-row" wx:for="{{rulesView}}" wx:key="id">
         <text class="lab">满</text>
-        <input class="cfg-input" type="digit" value="{{item.minText}}" placeholder="100" data-id="{{item.id}}" data-field="min" bindblur="onRuleBlur" />
+        <input class="cfg-input" type="digit" value="{{item.minText}}" placeholder="100" data-id="{{item.id}}" data-field="min" bindinput="onCfgInput" bindblur="onRuleBlur" />
         <text class="lab">减</text>
-        <input class="cfg-input" type="digit" value="{{item.offText}}" placeholder="5" data-id="{{item.id}}" data-field="off" bindblur="onRuleBlur" />
+        <input class="cfg-input" type="digit" value="{{item.offText}}" placeholder="5" data-id="{{item.id}}" data-field="off" bindinput="onCfgInput" bindblur="onRuleBlur" />
         <text class="cfg-del" data-id="{{item.id}}" catchtap="onDelRule">✕</text>
       </view>
       <view class="cfg-add" bindtap="onAddRule">＋ 加一条满减</view>
 
       <view class="cfg-title cfg-title-gap">快捷键（算价时点一下立减，可多选）</view>
       <view class="cfg-row" wx:for="{{keysView}}" wx:key="id">
-        <input class="cfg-input txt" type="text" value="{{item.name}}" placeholder="如 会员减一" data-id="{{item.id}}" data-field="name" bindblur="onKeyBlur" />
+        <input class="cfg-input txt" type="text" value="{{item.name}}" placeholder="如 会员减一" data-id="{{item.id}}" data-field="name" bindinput="onCfgInput" bindblur="onKeyBlur" />
         <text class="lab">减</text>
-        <input class="cfg-input" type="digit" value="{{item.offText}}" placeholder="1" data-id="{{item.id}}" data-field="off" bindblur="onKeyBlur" />
+        <input class="cfg-input" type="digit" value="{{item.offText}}" placeholder="1" data-id="{{item.id}}" data-field="off" bindinput="onCfgInput" bindblur="onKeyBlur" />
         <text class="cfg-del" data-id="{{item.id}}" catchtap="onDelKey">✕</text>
       </view>
       <view class="cfg-add" bindtap="onAddKey">＋ 加一个快捷键</view>
