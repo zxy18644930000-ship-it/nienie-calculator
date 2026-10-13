@@ -1,0 +1,33 @@
+<view class="page">
+  <view class="tools">
+    <button class="btn ghost" bindtap="onExport">导出备份</button>
+    <button class="btn ghost" bindtap="onImport">导入恢复</button>
+  </view>
+
+  <scroll-view class="list" scroll-y enhanced show-scrollbar="{{false}}">
+    <view wx:if="{{records.length === 0}}" class="empty">还没有保存过单子</view>
+    <view wx:for="{{records}}" wx:key="id" class="record">
+      <text wx:if="{{item.orderNo}}" class="r-id">单号 {{item.orderNo}}</text>
+      <view class="r-top">
+        <text class="r-no {{item.no ? '' : 'muted'}}">{{item.no ? '顾客 ' + item.no : '未填编号'}}</text>
+        <text class="r-time">{{item.timeText}}</text>
+      </view>
+      <text class="r-items">{{item.itemsText}}</text>
+      <text wx:if="{{item.discText}}" class="r-disc">{{item.discText}}</text>
+      <text class="r-total">¥{{item.totalText}}</text>
+      <text class="r-del" data-id="{{item.id}}" catchtap="onDelete">删除</text>
+    </view>
+    <view class="list-bottom"></view>
+  </scroll-view>
+</view>
+
+<view wx:if="{{modal.show}}" class="modal-mask" bindtap="closeModal">
+  <view class="modal-box" catchtap="noop">
+    <view class="modal-title">{{modal.title}}</view>
+    <text wx:if="{{modal.text}}" class="modal-text">{{modal.text}}</text>
+    <view class="modal-actions">
+      <button class="btn secondary modal-btn" bindtap="closeModal">取消</button>
+      <button class="btn {{modal.danger ? 'danger' : 'primary'}} modal-btn" bindtap="submitModal">{{modal.okText}}</button>
+    </view>
+  </view>
+</view>

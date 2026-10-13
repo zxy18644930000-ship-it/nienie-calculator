@@ -1,0 +1,15 @@
+{
+  "pages": [
+    "pages/index/index",
+    "pages/records/records"
+  ],
+  "window": {
+    "navigationBarBackgroundColor": "#FFF6EF",
+    "navigationBarTextStyle": "black",
+    "navigationBarTitleText": "捏捏乐算价",
+    "backgroundColor": "#FFF6EF",
+    "backgroundTextStyle": "light"
+  },
+  "style": "v2",
+  "sitemapLocation": "sitemap.json"
+}

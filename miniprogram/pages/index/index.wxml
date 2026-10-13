@@ -1,0 +1,102 @@
+<view class="page">
+  <view class="header">
+    <view class="topbar">
+      <text class="brand">捏捏乐算价</text>
+      <text class="order-chip {{orderNo ? 'active' : ''}}">{{orderNo ? '单号 ' + orderNo : '单号 —'}}</text>
+      <view class="top-actions">
+        <button class="btn ghost" bindtap="openRecords">记录</button>
+        <button class="btn ghost" bindtap="toggleEdit">{{editing ? '完成' : '编辑'}}</button>
+      </view>
+    </view>
+
+    <view class="summary">
+      <view class="display">
+        <view class="display-top">
+          <text class="display-count">{{countText}}</text>
+          <text class="total-amount">¥{{totalText}}</text>
+        </view>
+        <text wx:if="{{detailText}}" class="display-detail">{{detailText}}</text>
+        <text wx:if="{{discText}}" class="display-disc">{{discText}}</text>
+      </view>
+      <view class="cust">
+        <text class="cust-label">顾客编号（选填）</text>
+        <input class="cust-input" value="{{custNo}}" placeholder="订单尾号 / 昵称" bindinput="onCustInput" confirm-type="done" />
+      </view>
+      <view class="key-row" wx:if="{{keyPills.length > 0}}">
+        <view wx:for="{{keyPills}}" wx:key="id" class="key-pill {{item.on ? 'on' : ''}}" data-id="{{item.id}}" bindtap="toggleKey">{{item.name}}</view>
+      </view>
+    </view>
+  </view>
+
+  <scroll-view class="body" scroll-y enhanced show-scrollbar="{{false}}">
+    <view wx:if="{{editing}}" class="edit-banner">
+      <text class="eb-text">编辑模式：点图片换图 · 点名称/价格可改</text>
+      <button class="btn primary eb-btn" bindtap="toggleEdit">完成，去算价</button>
+    </view>
+
+    <view wx:if="{{editing}}" class="disc-cfg">
+      <view class="cfg-title">满减（按合计自动生效，取门槛最高的一条）</view>
+      <view class="cfg-row" wx:for="{{rulesView}}" wx:key="id">
+        <text class="lab">满</text>
+        <input class="cfg-input" type="digit" value="{{item.minText}}" placeholder="100" data-id="{{item.id}}" data-field="min" bindblur="onRuleBlur" />
+        <text class="lab">减</text>
+        <input class="cfg-input" type="digit" value="{{item.offText}}" placeholder="5" data-id="{{item.id}}" data-field="off" bindblur="onRuleBlur" />
+        <text class="cfg-del" data-id="{{item.id}}" catchtap="onDelRule">✕</text>
+      </view>
+      <view class="cfg-add" bindtap="onAddRule">＋ 加一条满减</view>
+
+      <view class="cfg-title cfg-title-gap">快捷键（算价时点一下立减，可多选）</view>
+      <view class="cfg-row" wx:for="{{keysView}}" wx:key="id">
+        <input class="cfg-input txt" type="text" value="{{item.name}}" placeholder="如 会员减一" data-id="{{item.id}}" data-field="name" bindblur="onKeyBlur" />
+        <text class="lab">减</text>
+        <input class="cfg-input" type="digit" value="{{item.offText}}" placeholder="1" data-id="{{item.id}}" data-field="off" bindblur="onKeyBlur" />
+        <text class="cfg-del" data-id="{{item.id}}" catchtap="onDelKey">✕</text>
+      </view>
+      <view class="cfg-add" bindtap="onAddKey">＋ 加一个快捷键</view>
+    </view>
+
+    <view class="grid">
+      <view wx:for="{{items}}" wx:key="id"
+            class="card {{item.count > 0 ? 'sel' : ''}}"
+            data-id="{{item.id}}"
+            bindtap="onCardTap" bindlongpress="onCardLongPress">
+        <text class="no">{{index + 1}}号</text>
+        <view class="imgwrap">
+          <image wx:if="{{item.hasImg}}" class="img" src="{{item.imgPath}}" mode="aspectFill" />
+          <view wx:else class="empty">{{editing ? '点这里放图片' : '还没设置'}}</view>
+          <view wx:if="{{item.count > 0}}" class="badge">{{item.count}}</view>
+          <view wx:if="{{editing && item.hasImg}}" class="editmask">换图</view>
+        </view>
+        <view class="pname {{item.name ? '' : (editing ? 'pname-empty' : 'pname-hide')}}"
+              data-id="{{item.id}}" catchtap="onNameTap">{{item.name ? item.name : '点这里填名称'}}</view>
+        <view class="card-foot">
+          <view wx:if="{{!editing}}" class="minus {{item.count > 0 ? '' : 'off'}}"
+                data-id="{{item.id}}" catchtap="onMinusTap">−</view>
+          <view class="price {{editing ? 'editable' : ''}}" data-id="{{item.id}}" catchtap="onPriceTap">¥{{item.priceText}}</view>
+        </view>
+        <view wx:if="{{editing}}" class="delbtn" data-id="{{item.id}}" catchtap="onDeleteTap">✕</view>
+      </view>
+    </view>
+    <view class="grid-bottom"></view>
+  </scroll-view>
+
+  <view class="bottombar">
+    <button wx:if="{{!editing}}" class="btn secondary bar-btn" bindtap="onClearTap">清空</button>
+    <button wx:if="{{!editing}}" class="btn primary bar-btn save-btn" bindtap="saveOrder">保存本单</button>
+    <button wx:if="{{editing}}" class="btn primary bar-btn" bindtap="addItem">＋ 加一格</button>
+  </view>
+</view>
+
+<view wx:if="{{modal.show}}" class="modal-mask" bindtap="closeModal">
+  <view class="modal-box" catchtap="noop">
+    <view class="modal-title">{{modal.title}}</view>
+    <input wx:if="{{modal.type === 'input'}}" class="modal-input"
+           type="{{modal.inputType}}" value="{{modal.value}}" placeholder="{{modal.placeholder}}"
+           focus="{{true}}" bindinput="onModalInput" confirm-type="done" bindconfirm="submitModal" />
+    <text wx:if="{{modal.text}}" class="modal-text">{{modal.text}}</text>
+    <view class="modal-actions">
+      <button class="btn secondary modal-btn" bindtap="closeModal">取消</button>
+      <button class="btn {{modal.danger ? 'danger' : 'primary'}} modal-btn" bindtap="submitModal">{{modal.okText}}</button>
+    </view>
+  </view>
+</view>

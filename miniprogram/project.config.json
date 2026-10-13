@@ -1,0 +1,14 @@
+{
+  "compileType": "miniprogram",
+  "appid": "touristappid",
+  "projectname": "nienie-calculator",
+  "setting": {
+    "es6": true,
+    "enhance": true,
+    "postcss": true,
+    "minified": false,
+    "urlCheck": false,
+    "ignoreUploadUnusedFiles": true
+  },
+  "condition": {}
+}
