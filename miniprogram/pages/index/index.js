@@ -146,6 +146,7 @@ Page({
   },
 
   pickImage(it) {
+    const itemId = it.id;
     wx.chooseMedia({
       count: 1,
       mediaType: ['image'],
@@ -157,30 +158,12 @@ Page({
           return;
         }
         const temp = f.tempFilePath;
-        const dest = wx.env.USER_DATA_PATH + '/img_' + it.id + '_' + Date.now() + '.jpg';
-        const finalize = (srcPath) => {
-          fs.copyFile({
-            srcPath,
-            destPath: dest,
-            success: () => {
-              store.deleteImage(it.imgPath);
-              it.imgPath = dest;
-              it.hasImg = true;
-              store.saveItems(this.model.items);
-              this.syncAll();
-              wx.showToast({ title: '图片已放好', icon: 'none' });
-            },
-            fail: (err) => {
-              const msg = (err && err.errMsg) || '';
-              wx.showModal({ title: '图片没保存成功', content: msg || '请再试一次', showCancel: false });
-            },
-          });
-        };
+        const dest = wx.env.USER_DATA_PATH + '/img_' + itemId + '_' + Date.now() + '.jpg';
         wx.compressImage({
           src: temp,
           quality: 80,
-          success: (r) => finalize(r.tempFilePath),
-          fail: () => finalize(temp),
+          success: (r) => this.applyPickedImage(itemId, r.tempFilePath, dest),
+          fail: () => this.applyPickedImage(itemId, temp, dest),
         });
       },
       fail: (err) => {
@@ -191,6 +174,31 @@ Page({
           content: (msg || '') + '\n\n请检查：iPad 设置 → 微信 → 相机、照片 权限是否已打开',
           showCancel: false,
         });
+      },
+    });
+  },
+
+  /* 按编号在当前生效的列表里重新查找，避免“拍照期间列表被重载”导致照片贴到作废副本上 */
+  applyPickedImage(itemId, srcPath, dest) {
+    const live = this.model.items.find((x) => x.id === itemId);
+    if (!live) {
+      wx.showToast({ title: '找不到这一格，请重新操作', icon: 'none' });
+      return;
+    }
+    fs.copyFile({
+      srcPath,
+      destPath: dest,
+      success: () => {
+        store.deleteImage(live.imgPath);
+        live.imgPath = dest;
+        live.hasImg = true;
+        store.saveItems(this.model.items);
+        this.syncAll();
+        wx.showToast({ title: '图片已放好', icon: 'none' });
+      },
+      fail: (err) => {
+        const msg = (err && err.errMsg) || '';
+        wx.showModal({ title: '图片没保存成功', content: msg || '请再试一次', showCancel: false });
       },
     });
   },
@@ -208,7 +216,7 @@ Page({
     }
     const it = this.model.items.find((x) => x.id === id);
     if (!it) return;
-    this._modalTarget = it;
+    this._modalTargetId = id;
     this._modalValue = it.price ? String(it.price) : '';
     this.setData({ modal: { show: true, type: 'input', inputType: 'digit', title: '改价（元）', value: this._modalValue, placeholder: '如 28', text: '', okText: '确定', danger: false, action: 'price' } });
   },
@@ -221,15 +229,16 @@ Page({
     }
     const it = this.model.items.find((x) => x.id === id);
     if (!it) return;
-    this._modalTarget = it;
+    this._modalTargetId = id;
     this._modalValue = it.name || '';
     this.setData({ modal: { show: true, type: 'input', inputType: 'text', title: '产品名称', value: this._modalValue, placeholder: '如 草莓熊（可留空）', text: '', okText: '确定', danger: false, action: 'name' } });
   },
 
   onDeleteTap(e) {
-    const it = this.model.items.find((x) => x.id === e.currentTarget.dataset.id);
+    const id = e.currentTarget.dataset.id;
+    const it = this.model.items.find((x) => x.id === id);
     if (!it) return;
-    this._modalTarget = it;
+    this._modalTargetId = id;
     this.setData({ modal: { show: true, type: 'confirm', inputType: 'text', title: '删除这一格？', value: '', placeholder: '', text: '这一格的图片和价格会一起删掉。', okText: '删除', danger: true, action: 'deleteItem' } });
   },
 
@@ -257,26 +266,29 @@ Page({
 
   submitModal() {
     const action = this.data.modal.action;
+    const target = this.model.items.find((x) => x.id === this._modalTargetId);
     if (action === 'price') {
       const p = parseFloat(this._modalValue);
       if (isNaN(p) || p < 0 || p > 99999) {
         wx.showToast({ title: '填个数字，如 28', icon: 'none' });
         return;
       }
-      this._modalTarget.price = Math.round(p * 100) / 100;
+      if (!target) { this.closeModal(); return; }
+      target.price = Math.round(p * 100) / 100;
       store.saveItems(this.model.items);
       this.closeModal();
       this.syncAll();
     } else if (action === 'name') {
-      this._modalTarget.name = String(this._modalValue || '').trim().slice(0, 24);
+      if (!target) { this.closeModal(); return; }
+      target.name = String(this._modalValue || '').trim().slice(0, 24);
       store.saveItems(this.model.items);
       this.closeModal();
       this.syncAll();
     } else if (action === 'deleteItem') {
-      const it = this._modalTarget;
-      store.deleteImage(it.imgPath);
-      delete this.model.counts[it.id];
-      this.model.items = this.model.items.filter((x) => x.id !== it.id);
+      if (!target) { this.closeModal(); return; }
+      store.deleteImage(target.imgPath);
+      delete this.model.counts[target.id];
+      this.model.items = this.model.items.filter((x) => x.id !== target.id);
       store.saveItems(this.model.items);
       this.closeModal();
       this.syncAll();
