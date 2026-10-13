@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no, maximum-scale=1">
+  <meta name="theme-color" content="#FFF6EF">
+  <meta name="color-scheme" content="light">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <meta name="apple-mobile-web-app-title" content="捏捏乐算价">
+  <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+  <link rel="icon" type="image/png" href="icons/icon-192.png">
+  <link rel="manifest" href="manifest.webmanifest">
+  <title>捏捏乐算价</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <header class="topbar">
+    <div class="brand">捏捏乐算价</div>
+    <div class="top-actions">
+      <button id="btnRecords" class="btn ghost" type="button">记录</button>
+      <button id="btnEdit" class="btn ghost" type="button">编辑</button>
+    </div>
+  </header>
+
+  <section class="summary">
+    <div class="cust">
+      <label for="customerNo">顾客编号（选填）</label>
+      <input id="customerNo" type="text" placeholder="订单尾号 / 昵称" autocomplete="off" spellcheck="false">
+    </div>
+    <div class="total">
+      <div class="total-amount">¥<span id="totalAmount">0</span></div>
+      <div class="total-count" id="totalCount">共 0 件</div>
+    </div>
+  </section>
+
+  <main id="grid" class="grid"></main>
+
+  <footer class="bottombar">
+    <button id="btnClear" class="btn secondary" type="button">清空</button>
+    <button id="btnSave" class="btn primary" type="button">保存本单</button>
+    <button id="btnAddItem" class="btn primary btn-add" type="button">＋ 加一格</button>
+  </footer>
+
+  <div id="recordsView" class="overlay hidden">
+    <div class="records-head">
+      <button id="btnRecordsBack" class="btn ghost" type="button">返回</button>
+      <h2>顾客记录</h2>
+      <button id="btnExport" class="btn ghost" type="button">导出备份</button>
+      <button id="btnImport" class="btn ghost" type="button">导入恢复</button>
+    </div>
+    <div id="recordsList" class="records-list"></div>
+  </div>
+
+  <div id="modalRoot" class="modal-root hidden"></div>
+  <div id="toastBox" class="toast"></div>
+
+  <input type="file" id="filePicker" accept="image/*" hidden>
+  <input type="file" id="importPicker" accept=".json,application/json" hidden>
+
+  <script src="db.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
