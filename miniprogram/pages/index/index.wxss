@@ -54,7 +54,13 @@
   justify-content: space-between;
   gap: 20rpx;
 }
-.display-count { font-size: 26rpx; font-weight: 600; color: #A6907F; white-space: nowrap; }
+.display-top {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 20rpx;
+}
+.display-count { font-size: 34rpx; font-weight: 800; color: #35261B; white-space: nowrap; }
 .total-amount { font-size: 76rpx; line-height: 1.15; font-weight: 900; color: #E04E2C; }
 .display-detail { font-size: 24rpx; color: #A6907F; line-height: 1.5; }
 .display-disc { font-size: 24rpx; font-weight: 700; color: #B4402A; line-height: 1.5; }
