@@ -65,13 +65,19 @@ Page({
     });
   },
 
+  /* 优先用服务端换好的临时链接（管理员看工人照片必须走服务端） */
   previewPhoto(e) {
     const f = e.currentTarget.dataset.f;
+    const u = e.currentTarget.dataset.u;
+    if (u) {
+      wx.previewImage({ urls: [u] });
+      return;
+    }
     if (!f) return;
     wx.cloud.getTempFileURL({ fileList: [f] }).then((res) => {
-      const u = res.fileList && res.fileList[0] && res.fileList[0].tempFileURL;
-      if (u) wx.previewImage({ urls: [u] });
-      else wx.showToast({ title: '照片打不开', icon: 'none' });
+      const url = res.fileList && res.fileList[0] && res.fileList[0].tempFileURL;
+      if (url) wx.previewImage({ urls: [url] });
+      else wx.showToast({ title: '照片打不开（可让老板调存储权限或稍后重试）', icon: 'none' });
     }).catch(() => {
       wx.showToast({ title: '照片打不开', icon: 'none' });
     });

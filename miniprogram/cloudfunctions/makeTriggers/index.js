@@ -155,7 +155,9 @@ exports.main = async (event) => {
     } catch (e) { out2.reports = 'ERR ' + String((e && e.message) || e); }
     try {
       const r2 = await db.collection('wl_aicounts').orderBy('ts', 'desc').limit(5).get();
-      out2.aicounts = (r2.data || []).map((x) => ({ id: x._id, fileID: x.fileID, count: x.count, ts: x.ts }));
+      out2.aicounts = (r2.data || []).map((x) => ({
+        id: x._id, fileID: x.fileID, count: x.count, ts: x.ts, err: x.err || '', raw: x.raw || '',
+      }));
     } catch (e) { out2.aicounts = 'ERR ' + String((e && e.message) || e); }
     return { ok: true, ...out2 };
   }

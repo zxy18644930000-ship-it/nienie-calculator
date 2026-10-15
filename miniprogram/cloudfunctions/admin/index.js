@@ -29,6 +29,20 @@ async function nameMap() {
   return m;
 }
 
+/* 服务端换临时链接：默认存储权限下，管理员客户端直接拿不到别人上传的照片，必须由云函数代换 */
+async function tempUrls(fileIDs) {
+  const ids = (fileIDs || []).filter((x) => x && String(x).indexOf('cloud://') === 0);
+  if (!ids.length) return {};
+  try {
+    const r = await cloud.getTempFileURL({ fileList: ids });
+    const m = {};
+    (r.fileList || []).forEach((f) => { if (f.tempFileURL) m[f.fileID] = f.tempFileURL; });
+    return m;
+  } catch (e) {
+    return {};
+  }
+}
+
 const COLLECTIONS = ['wl_users', 'wl_processes', 'wl_reports', 'wl_summary', 'wl_config', 'wl_aicounts'];
 
 async function ensureCollections() {
@@ -198,15 +212,18 @@ async function dayDetail(event) {
   if (!openid) return { ok: false, err: '缺少工人' };
   const r = await db.collection('wl_reports').where({ date, openid })
     .orderBy('ts', 'asc').limit(300).get();
+  const rows = r.data || [];
+  const urls = await tempUrls(rows.map((x) => x.photo));
   return {
     ok: true,
-    list: (r.data || []).map((it) => ({
+    list: rows.map((it) => ({
       id: it._id,
       process_name: it.process_name,
       qty: it.qty,
       amount_text: moneyText(it.amount_c),
       time_text: timeText(it.ts),
       photo: it.photo,
+      photo_url: urls[it.photo] || '',
       ai_flag: !!it.ai_flag,
       ai_count: it.ai_count === undefined ? null : it.ai_count,
       ai_status: it.ai_status || 'off',
@@ -224,10 +241,12 @@ async function reviewList(event, cfg) {
     : { ai_flag: true, review: _.neq('none') };
   const r = await db.collection('wl_reports').where(where).orderBy('ts', 'desc').limit(100).get();
   const names = await nameMap();
+  const rows = r.data || [];
+  const urls = await tempUrls(rows.map((x) => x.photo));
   return {
     ok: true,
     flag_ratio_text: String(Math.round(((cfg.ai && cfg.ai.flag_ratio) || 0.3) * 100)),
-    list: (r.data || []).map((it) => {
+    list: rows.map((it) => {
       const ai = it.ai_count === undefined ? null : it.ai_count;
       const dev = ai === null ? null : Math.round(((ai - it.qty) / Math.max(it.qty, 1)) * 100);
       return {
@@ -240,6 +259,7 @@ async function reviewList(event, cfg) {
         dev_text: dev === null ? '' : (dev > 0 ? '+' : '') + dev + '%',
         time_text: it.date + ' ' + timeText(it.ts),
         photo: it.photo,
+        photo_url: urls[it.photo] || '',
         review: it.review || 'none',
       };
     }),

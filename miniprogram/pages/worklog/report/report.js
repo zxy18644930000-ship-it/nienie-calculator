@@ -10,6 +10,7 @@ Page({
     fileID: '',
     photoStatus: '',
     aiSug: null,
+    aiNote: '',
     qty: 0,
     todayQty: 0,
     previewText: '0',
@@ -79,7 +80,7 @@ Page({
     if (this.data.fileID) {
       wx.cloud.deleteFile({ fileList: [this.data.fileID] }).catch(() => {});
     }
-    this.setData({ photo: localPath, fileID: '', photoStatus: 'uploading', aiSug: null });
+    this.setData({ photo: localPath, fileID: '', photoStatus: 'uploading', aiSug: null, aiNote: '' });
 
     const d = new Date();
     const p2 = (n) => String(n).padStart(2, '0');
@@ -103,12 +104,16 @@ Page({
         this.setData({ aiSug: typeof r.count === 'number' ? r.count : null, photoStatus: 'done' });
         try { wx.vibrateShort({ type: 'light' }); } catch (e) {}
       })
-      .catch(() => {
+      .catch((e) => {
         if (seq !== this._photoSeq) return;
         const uploaded = !!this.data.fileID;
-        this.setData({ photoStatus: uploaded ? 'done' : 'failed' });
+        this.setData({
+          photoStatus: uploaded ? 'done' : 'failed',
+          aiNote: uploaded
+            ? ('AI 没数出来：' + String((e && e.message) || '未知原因').slice(0, 50) + '（自己数一下填吧）')
+            : '照片上传失败，请重拍',
+        });
         if (!uploaded) wx.showToast({ title: '照片上传失败，请重拍', icon: 'none' });
-        /* AI 数不出来不拦人：可能没开启或网络问题，工人照常自己数自己填 */
       });
   },
 
@@ -121,7 +126,7 @@ Page({
     if (this.data.fileID) {
       wx.cloud.deleteFile({ fileList: [this.data.fileID] }).catch(() => {});
     }
-    this.setData({ photo: '', fileID: '', photoStatus: '', aiSug: null });
+    this.setData({ photo: '', fileID: '', photoStatus: '', aiSug: null, aiNote: '' });
   },
 
   /* 点「AI 建议」把建议数量填进输入框 */
@@ -171,7 +176,7 @@ Page({
         this._busy = false;
         this._photoSeq = (this._photoSeq || 0) + 1;
         /* 提交成功后数量归零、照片清空，下一批重新数重新填 */
-        this.setData({ submitting: false, photo: '', fileID: '', photoStatus: '', aiSug: null, qty: 0, previewText: '0', todayQty: r.today_qty });
+        this.setData({ submitting: false, photo: '', fileID: '', photoStatus: '', aiSug: null, aiNote: '', qty: 0, previewText: '0', todayQty: r.today_qty });
         wx.showToast({ title: '已记 ' + this.data.pname + ' ' + qty + ' 件', icon: 'none' });
         try { wx.vibrateShort({ type: 'medium' }); } catch (err) {}
       })

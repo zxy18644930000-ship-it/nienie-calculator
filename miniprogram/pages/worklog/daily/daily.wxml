@@ -48,7 +48,7 @@
           </view>
         </view>
         <text class="wl-money">¥{{item.amount_text}}</text>
-        <image class="wl-thumb" src="{{item.photo}}" mode="aspectFill" data-f="{{item.photo}}" bindtap="previewPhoto" />
+        <image class="wl-thumb" src="{{item.photo_url || item.photo}}" mode="aspectFill" data-f="{{item.photo}}" data-u="{{item.photo_url}}" bindtap="previewPhoto" />
       </view>
     </scroll-view>
     <view class="modal-actions">

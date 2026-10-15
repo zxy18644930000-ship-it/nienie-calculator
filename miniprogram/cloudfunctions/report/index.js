@@ -136,7 +136,8 @@ async function submit(openid, event) {
   try {
     const c = await db.collection('wl_aicounts').doc('ai_' + md5(photo)).get();
     const cd = c.data || {};
-    if (typeof cd.count === 'number' && Date.now() - (cd.ts || 0) < 30 * 60 * 1000) ai_count = cd.count;
+    /* count>=0 才是有效结果；-1 是失败记号，不用 */
+    if (typeof cd.count === 'number' && cd.count >= 0 && Date.now() - (cd.ts || 0) < 30 * 60 * 1000) ai_count = cd.count;
   } catch (e) {}
   const ai_status = ai_count !== null ? 'done' : (aiConf.enabled ? 'pending' : 'off');
   const ai_flag = ai_count !== null
@@ -162,10 +163,8 @@ async function submit(openid, event) {
     },
   });
 
-  /* 缓存用完即删（留在库里也没用） */
-  if (ai_count !== null) {
-    try { await db.collection('wl_aicounts').doc('ai_' + md5(photo)).remove(); } catch (e) {}
-  }
+  /* 缓存用完即删（有效结果和失败记号都清掉） */
+  try { await db.collection('wl_aicounts').doc('ai_' + md5(photo)).remove(); } catch (e) {}
 
   const agg = await db.collection('wl_reports').aggregate()
     .match({ openid, date: t, process_id: pid })

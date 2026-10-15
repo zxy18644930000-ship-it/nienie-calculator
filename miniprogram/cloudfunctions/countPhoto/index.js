@@ -66,7 +66,7 @@ function postJson(urlStr, key, body) {
         Authorization: 'Bearer ' + key,
         'Content-Length': Buffer.byteLength(data),
       },
-      timeout: 20000,
+      timeout: 45000,
     }, (res) => {
       let buf = '';
       res.on('data', (d) => { buf += d; });
@@ -124,6 +124,20 @@ async function countOne(ai, fileID) {
   return { count: Math.max(0, Math.min(9999, n)), raw: (content || reasoning).slice(0, 200) };
 }
 
+/* 数数失败的记号（count=-1）：让失败可查、可回溯 */
+async function cacheFail(fileID, err) {
+  const id = 'ai_' + md5(fileID);
+  const data = { fileID, count: -1, err: String(err || '').slice(0, 160), ts: Date.now() };
+  try {
+    await db.collection('wl_aicounts').doc(id).set({ data });
+  } catch (e) {
+    try {
+      await db.createCollection('wl_aicounts');
+      await db.collection('wl_aicounts').doc(id).set({ data });
+    } catch (e2) {}
+  }
+}
+
 /* 处理一批待数数的报工照片（定时触发，或在「异常复核」页手动刷新） */
 exports.main = async (event) => {
   const cfg = await getCfg();
@@ -137,16 +151,23 @@ exports.main = async (event) => {
 
   const ai = cfg.ai || {};
 
-  /* 单张即时数数（报工页拍完照立刻调）：只数不落库，结果放缓存供提交时取用 */
+  /* 单张即时数数（报工页拍完照立刻调）：只数不落库，结果放缓存供提交时取用；失败重试一次并记档 */
   if (event.fileID) {
     if (!ai.enabled) return { ok: false, err: 'AI 数数未开启' };
-    try {
-      const r = await countOne(ai, String(event.fileID));
-      await cacheCount(String(event.fileID), r.count, r.raw);
-      return { ok: true, count: r.count };
-    } catch (e) {
-      return { ok: false, err: String((e && e.message) || e).slice(0, 120) };
+    const fid = String(event.fileID);
+    let lastErr = '';
+    for (let attempt = 1; attempt <= 2; attempt++) {
+      try {
+        const r = await countOne(ai, fid);
+        await cacheCount(fid, r.count, r.raw);
+        return { ok: true, count: r.count };
+      } catch (e) {
+        lastErr = String((e && e.message) || e).slice(0, 120);
+        console.log('[countPhoto] 第' + attempt + '次失败 fileID=' + fid + ' err=' + lastErr);
+      }
     }
+    await cacheFail(fid, lastErr);
+    return { ok: false, err: lastErr };
   }
 
   if (!ai.enabled) return { ok: true, skipped: 'AI 数数未开启（wl_config.ai.enabled=false）' };

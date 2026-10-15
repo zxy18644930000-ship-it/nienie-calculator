@@ -26,8 +26,11 @@
         <view class="photo-status">
           <text wx:if="{{photoStatus === 'uploading'}}" class="ps-text">照片上传中…</text>
           <text wx:elif="{{photoStatus === 'counting'}}" class="ps-text">AI 正在数这张照片…（可以先填数量，不耽误）</text>
-          <text wx:elif="{{photoStatus === 'failed'}}" class="ps-text warn">照片上传失败，请重拍</text>
+          <text wx:elif="{{photoStatus === 'failed'}}" class="ps-text warn">{{aiNote || '照片上传失败，请重拍'}}</text>
           <text wx:else class="ps-text">照片已就绪</text>
+        </view>
+        <view wx:if="{{aiNote && photoStatus === 'done'}}" class="photo-status">
+          <text class="ps-text warn">{{aiNote}}</text>
         </view>
         <view class="photo-actions">
           <view class="btn ghost" bindtap="choosePhoto">重拍</view>
