@@ -17,7 +17,7 @@
       </view>
       <view class="wl-row" wx:for="{{item.items}}" wx:for-item="it" wx:key="id">
         <view class="wl-grow">
-          <view class="wl-name">{{it.process_name}} ×{{it.qty}}</view>
+          <view class="wl-name">{{it.process_name}}<text wx:if="{{it.item_name}}"> · {{it.item_name}}</text> ×{{it.qty}}</view>
           <view class="wl-meta">
             {{it.time_text}}
             <text wx:if="{{it.ai_flag}}" class="wl-chip warn" style="margin-left:12rpx">AI 核对异常</text>

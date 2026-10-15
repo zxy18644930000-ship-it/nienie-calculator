@@ -104,6 +104,9 @@ async function submit(openid, event) {
   const photo = String(event.photo || '');
   if (photo.indexOf('cloud://') !== 0) return { ok: false, err: '照片没上传成功，请重拍' };
 
+  /* 手工品名称：选填 */
+  const itemName = String(event.item_name || '').trim().slice(0, 24);
+
   const pid = String(event.process_id || '');
   let proc = null;
   try {
@@ -154,6 +157,7 @@ async function submit(openid, event) {
       worker_name: user.name,
       process_id: pid,
       process_name: proc.name,
+      item_name: itemName,
       price_c: proc.price_c,
       qty,
       amount_c,
@@ -196,6 +200,7 @@ async function mine(openid, event) {
     d.items.push({
       id: it._id,
       process_name: it.process_name,
+      item_name: it.item_name || '',
       qty: it.qty,
       amount_text: moneyText(it.amount_c),
       time_text: timeText(it.ts),

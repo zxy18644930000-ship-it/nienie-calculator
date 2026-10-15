@@ -45,7 +45,7 @@
       <view wx:if="{{!detailList.length}}" class="wl-empty">没有记录</view>
       <view class="wl-row" wx:for="{{detailList}}" wx:key="id" data-id="{{item.id}}" bindlongpress="deleteRecord">
         <view class="wl-grow">
-          <view class="wl-name">{{item.process_name}} ×{{item.qty}}</view>
+          <view class="wl-name">{{item.process_name}}<text wx:if="{{item.item_name}}"> · {{item.item_name}}</text> ×{{item.qty}}</view>
           <view class="wl-meta">
             {{item.time_text}}
             <text wx:if="{{item.ai_flag}}" class="wl-chip warn" style="margin-left:12rpx">AI 异常</text>

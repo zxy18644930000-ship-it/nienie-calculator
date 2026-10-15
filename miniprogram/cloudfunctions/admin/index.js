@@ -250,6 +250,7 @@ async function dayDetail(event) {
     list: rows.map((it) => ({
       id: it._id,
       process_name: it.process_name,
+      item_name: it.item_name || '',
       qty: it.qty,
       amount_text: moneyText(it.amount_c),
       time_text: timeText(it.ts),

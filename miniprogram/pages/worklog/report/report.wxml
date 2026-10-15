@@ -41,7 +41,13 @@
     </view>
 
     <view class="wl-card">
-      <view class="wl-h">第二步 · 数数量</view>
+      <view class="wl-h">第二步 · 手工品名称（选填）</view>
+      <input class="wl-input" placeholder="比如：汉堡捏捏乐（不填也行）" maxlength="20"
+             value="{{itemName}}" bindinput="onItemNameInput" always-embed="{{true}}" />
+    </view>
+
+    <view class="wl-card">
+      <view class="wl-h">第三步 · 数数量</view>
       <view class="qty-row">
         <view class="qty-btn" data-d="-1" bindtap="qtyDelta">−</view>
         <input class="qty-input" type="number" value="{{qty || ''}}" bindinput="onQtyInput" confirm-type="done" />

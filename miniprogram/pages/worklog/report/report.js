@@ -11,6 +11,7 @@ Page({
     photoStatus: '',
     aiSug: null,
     aiNote: '',
+    itemName: '',
     qty: 0,
     todayQty: 0,
     previewText: '0',
@@ -172,6 +173,11 @@ Page({
     this.setDataPlus(Math.floor(Number(e.detail.value) || 0));
   },
 
+  /* 手工品名称：选填；输入时只记草稿（不 setData，避免打断输入） */
+  onItemNameInput(e) {
+    this._itemNameDraft = e.detail.value;
+  },
+
   qtyDelta(e) {
     const d = Number(e.currentTarget.dataset.d) || 0;
     try { wx.vibrateShort({ type: 'light' }); } catch (err) {}
@@ -202,13 +208,15 @@ Page({
     this.setData({ submitting: true });
     loading('提交中');
 
-    call('report', { action: 'submit', process_id: this.pid, qty, photo: this.data.fileID })
+    const itemName = String(this._itemNameDraft !== undefined ? this._itemNameDraft : this.data.itemName || '').trim().slice(0, 20);
+    call('report', { action: 'submit', process_id: this.pid, qty, photo: this.data.fileID, item_name: itemName })
       .then((r) => {
         hideLoading();
         this._busy = false;
         this._photoSeq = (this._photoSeq || 0) + 1;
+        this._itemNameDraft = '';
         /* 提交成功后数量归零、照片清空，下一批重新数重新填 */
-        this.setData({ submitting: false, photo: '', fileID: '', photoStatus: '', aiSug: null, aiNote: '', qty: 0, previewText: '0', todayQty: r.today_qty });
+        this.setData({ submitting: false, photo: '', fileID: '', photoStatus: '', aiSug: null, aiNote: '', itemName: '', qty: 0, previewText: '0', todayQty: r.today_qty });
         wx.showToast({ title: '已记 ' + this.data.pname + ' ' + qty + ' 件', icon: 'none' });
         try { wx.vibrateShort({ type: 'medium' }); } catch (err) {}
       })
