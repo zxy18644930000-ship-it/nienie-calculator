@@ -13,6 +13,13 @@ Page({
 
   onShow() { this.load(); },
 
+  /* 顶部标签页：工序 ↔ 品类管理 */
+  goTab(e) {
+    if (e.currentTarget.dataset.t === 'prod') {
+      wx.redirectTo({ url: '/pages/worklog/products/products' });
+    }
+  },
+
   load() {
     loading('加载中');
     call('admin', { action: 'processList' }).then((r) => {

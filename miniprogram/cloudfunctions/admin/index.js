@@ -43,7 +43,7 @@ async function tempUrls(fileIDs) {
   }
 }
 
-const COLLECTIONS = ['wl_users', 'wl_processes', 'wl_reports', 'wl_summary', 'wl_config', 'wl_aicounts'];
+const COLLECTIONS = ['wl_users', 'wl_processes', 'wl_reports', 'wl_summary', 'wl_config', 'wl_aicounts', 'wl_products'];
 
 async function ensureCollections() {
   for (const name of COLLECTIONS) {
@@ -165,6 +165,56 @@ async function workerSave(event) {
   if (!Object.keys(data).length) return { ok: false, err: '没有要保存的内容' };
   await db.collection('wl_users').doc(String(event.id)).update({ data });
   return { ok: true };
+}
+
+/* 手工品名称选项（报工第二步的下拉框内容，管理员维护） */
+async function productList() {
+  let rows = [];
+  try {
+    rows = (await db.collection('wl_products').orderBy('cts', 'asc').limit(100).get()).data || [];
+  } catch (e) {
+    rows = [];
+  }
+  return { ok: true, list: rows.map((p) => ({ id: p._id, name: p.name, active: p.active !== false })) };
+}
+
+async function productSave(event) {
+  if (event.id) {
+    const data = {};
+    if (event.name !== undefined) {
+      const name = String(event.name).trim();
+      if (!name || name.length > 20) return { ok: false, err: '名称请填 1~20 个字' };
+      data.name = name;
+    }
+    if (event.active !== undefined) data.active = !!event.active;
+    if (!Object.keys(data).length) return { ok: false, err: '没有要保存的内容' };
+    await db.collection('wl_products').doc(String(event.id)).update({ data });
+    return { ok: true };
+  }
+  const name = String(event.name || '').trim();
+  if (!name || name.length > 20) return { ok: false, err: '名称请填 1~20 个字' };
+  const payload = { name, active: true, cts: Date.now() };
+  try {
+    await db.collection('wl_products').add({ data: payload });
+  } catch (e) {
+    try {
+      await db.createCollection('wl_products');
+      await db.collection('wl_products').add({ data: payload });
+    } catch (e2) {
+      return { ok: false, err: '保存失败，请重试' };
+    }
+  }
+  return { ok: true };
+}
+
+async function productDelete(event) {
+  if (!event.id) return { ok: false, err: '缺少名称' };
+  try {
+    await db.collection('wl_products').doc(String(event.id)).remove();
+    return { ok: true };
+  } catch (e) {
+    return { ok: false, err: '删除失败，请重试' };
+  }
 }
 
 /* 某天的全员汇总（按人聚合）+ AI 对账（自报 vs AI 数） */
@@ -333,6 +383,9 @@ const HANDLERS = {
   reviewList,
   reviewMark,
   reportDelete,
+  productList,
+  productSave,
+  productDelete,
 };
 
 exports.main = async (event) => {

@@ -75,6 +75,23 @@
   vertical-align: middle;
 }
 
+.picker-box {
+  width: 100%;
+  height: 88rpx;
+  line-height: 88rpx;
+  font-size: 32rpx;
+  color: #35261B;
+  padding: 0 22rpx;
+  border-radius: 20rpx;
+  border: 3rpx solid #F1E3D7;
+  background: #FFFBF7;
+  box-sizing: border-box;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+.picker-box.muted { color: #A6907F; }
+
 .sug-chip {
   margin: 6rpx 0 16rpx;
   padding: 20rpx 0;

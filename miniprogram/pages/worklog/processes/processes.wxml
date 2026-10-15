@@ -1,5 +1,10 @@
 <view class="wl-page">
 
+  <view class="tabs">
+    <view class="tab on">工序</view>
+    <view class="tab" bindtap="goTab" data-t="prod">品类管理</view>
+  </view>
+
   <view wx:if="{{err}}" class="wl-card">
     <view class="wl-empty">{{err}}</view>
     <view class="btn primary wl-btn" bindtap="load">重试</view>

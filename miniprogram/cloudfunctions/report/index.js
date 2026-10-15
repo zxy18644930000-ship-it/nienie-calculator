@@ -53,6 +53,15 @@ async function home(openid) {
     id: p._id, name: p.name, price_text: moneyText(p.price_c),
   }));
 
+  /* 手工品名称选项（报工第二步的下拉框内容） */
+  let prodRows = [];
+  try {
+    prodRows = (await db.collection('wl_products').where({ active: true }).orderBy('cts', 'asc').limit(100).get()).data || [];
+  } catch (e) {
+    prodRows = [];
+  }
+  const products = prodRows.map((p) => ({ id: p._id, name: p.name }));
+
   const agg = await db.collection('wl_reports').aggregate()
     .match({ openid, date: t })
     .group({ _id: { pid: '$process_id', pname: '$process_name' }, qty: $.sum('$qty'), amount_c: $.sum('$amount_c') })
@@ -73,6 +82,7 @@ async function home(openid) {
     role,
     name: user ? user.name : '',
     processes,
+    products,
     today: { date: t, qty, amount_text: moneyText(amount_c), list },
   };
 }

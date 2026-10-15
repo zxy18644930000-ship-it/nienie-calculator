@@ -76,3 +76,17 @@
 .wl-foot { text-align: center; padding: 24rpx 0 6rpx; }
 .wl-link { font-size: 26rpx; font-weight: 700; color: #E04E2C; }
 .wl-foot .wl-link { color: #A6907F; font-weight: 600; font-size: 24rpx; }
+
+/* 管理页标签（工序 / 品类） */
+.tabs { display: flex; gap: 14rpx; margin: 4rpx 0 18rpx; }
+.tab {
+  flex: 1;
+  text-align: center;
+  padding: 18rpx 0;
+  border-radius: 20rpx;
+  background: #F7F3EF;
+  color: #8A7563;
+  font-size: 28rpx;
+  font-weight: 700;
+}
+.tab.on { background: linear-gradient(135deg, #FFB37A, #FF7A4D); color: #FFFFFF; }

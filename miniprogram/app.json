@@ -7,6 +7,7 @@
     "pages/worklog/report/report",
     "pages/worklog/mine/mine",
     "pages/worklog/processes/processes",
+    "pages/worklog/products/products",
     "pages/worklog/daily/daily",
     "pages/worklog/review/review",
     "pages/worklog/workers/workers"

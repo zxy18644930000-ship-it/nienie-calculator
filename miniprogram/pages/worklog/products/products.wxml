@@ -1,0 +1,44 @@
+<view class="wl-page">
+
+  <view class="tabs">
+    <view class="tab" bindtap="goTab" data-t="proc">工序</view>
+    <view class="tab on">品类管理</view>
+  </view>
+
+  <view wx:if="{{err}}" class="wl-card">
+    <view class="wl-empty">{{err}}</view>
+    <view class="btn primary wl-btn" bindtap="load">重试</view>
+  </view>
+
+  <block wx:elif="{{ready}}">
+    <view class="wl-card">
+      <view class="wl-h">
+        <text>品类列表</text>
+        <view class="wl-chip" bindtap="onAdd">＋ 新增品类</view>
+      </view>
+      <view wx:if="{{!list.length}}" class="wl-empty">还没有品类，点上面「新增品类」添加（比如：汉堡捏捏乐）</view>
+      <view class="wl-row" wx:for="{{list}}" wx:key="id" data-id="{{item.id}}" bindtap="onEditRow" bindlongpress="onDeleteRow">
+        <view class="wl-grow">
+          <view class="wl-name">{{item.name}}</view>
+        </view>
+        <view class="wl-chip {{item.active ? '' : 'gray'}}" data-id="{{item.id}}" catchtap="toggleActive">
+          {{item.active ? '启用中' : '已停用'}}
+        </view>
+      </view>
+    </view>
+    <view class="wl-sub" style="text-align:center">工人在报工第二步从下拉框里选；点一行改名、长按一行删除、右边开关启停。停用的不再出现在下拉框里，但不影响已有记录。</view>
+  </block>
+</view>
+
+<view wx:if="{{showEdit}}" class="modal-mask" bindtap="closeEdit">
+  <view class="modal-box" catchtap="noop">
+    <view class="modal-title">{{editId ? '编辑品类' : '新增品类'}}</view>
+    <view class="wl-sub" style="margin-bottom:14rpx">品类名称（工人报工第二步的下拉框里显示的就是它）</view>
+    <input class="wl-input" value="{{editName}}" placeholder="如 汉堡捏捏乐" maxlength="20"
+           bindinput="onNameInput" confirm-type="done" bindconfirm="save" always-embed="{{true}}" adjust-position="{{false}}" />
+    <view class="modal-actions">
+      <view class="btn secondary modal-btn" bindtap="closeEdit">取消</view>
+      <view class="btn primary modal-btn" bindtap="save">保存</view>
+    </view>
+  </view>
+</view>

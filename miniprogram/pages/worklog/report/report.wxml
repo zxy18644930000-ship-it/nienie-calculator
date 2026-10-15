@@ -42,8 +42,9 @@
 
     <view class="wl-card">
       <view class="wl-h">第二步 · 手工品名称（选填）</view>
-      <input class="wl-input" placeholder="比如：汉堡捏捏乐（不填也行）" maxlength="20"
-             value="{{itemName}}" bindinput="onItemNameInput" always-embed="{{true}}" />
+      <picker mode="selector" range="{{productNames}}" value="{{productIndex}}" bindchange="onProductChange">
+        <view class="picker-box {{productLabel ? '' : 'muted'}}">{{productLabel || '点这里选择（也可以跳过）'}} ▾</view>
+      </picker>
     </view>
 
     <view class="wl-card">

@@ -11,7 +11,9 @@ Page({
     photoStatus: '',
     aiSug: null,
     aiNote: '',
-    itemName: '',
+    productNames: ['（不选）'],
+    productIndex: 0,
+    productLabel: '',
     qty: 0,
     todayQty: 0,
     previewText: '0',
@@ -44,6 +46,9 @@ Page({
         err: '',
         pname: p.name,
         priceText: p.price_text,
+        productNames: ['（不选）'].concat((r.products || []).map((x) => x.name)),
+        productIndex: 0,
+        productLabel: '',
         qty: 0,
         todayQty: todayItem ? todayItem.qty : 0,
         previewText: '0',
@@ -173,9 +178,11 @@ Page({
     this.setDataPlus(Math.floor(Number(e.detail.value) || 0));
   },
 
-  /* 手工品名称：选填；输入时只记草稿（不 setData，避免打断输入） */
-  onItemNameInput(e) {
-    this._itemNameDraft = e.detail.value;
+  /* 手工品名称：从下拉框选（选项由老板在「手工品管理」里维护）；不选=跳过 */
+  onProductChange(e) {
+    const idx = Number(e.detail.value) || 0;
+    const label = idx > 0 ? (this.data.productNames[idx] || '') : '';
+    this.setData({ productIndex: idx, productLabel: label });
   },
 
   qtyDelta(e) {
@@ -208,15 +215,14 @@ Page({
     this.setData({ submitting: true });
     loading('提交中');
 
-    const itemName = String(this._itemNameDraft !== undefined ? this._itemNameDraft : this.data.itemName || '').trim().slice(0, 20);
+    const itemName = String(this.data.productLabel || '').trim().slice(0, 20);
     call('report', { action: 'submit', process_id: this.pid, qty, photo: this.data.fileID, item_name: itemName })
       .then((r) => {
         hideLoading();
         this._busy = false;
         this._photoSeq = (this._photoSeq || 0) + 1;
-        this._itemNameDraft = '';
-        /* 提交成功后数量归零、照片清空，下一批重新数重新填 */
-        this.setData({ submitting: false, photo: '', fileID: '', photoStatus: '', aiSug: null, aiNote: '', itemName: '', qty: 0, previewText: '0', todayQty: r.today_qty });
+        /* 提交成功后数量归零、照片和品名清空，下一批重新填 */
+        this.setData({ submitting: false, photo: '', fileID: '', photoStatus: '', aiSug: null, aiNote: '', productIndex: 0, productLabel: '', qty: 0, previewText: '0', todayQty: r.today_qty });
         wx.showToast({ title: '已记 ' + this.data.pname + ' ' + qty + ' 件', icon: 'none' });
         try { wx.vibrateShort({ type: 'medium' }); } catch (err) {}
       })
