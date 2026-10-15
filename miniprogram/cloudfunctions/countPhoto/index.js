@@ -62,22 +62,26 @@ async function countOne(ai, fileID) {
 
   const dl = await cloud.downloadFile({ fileID });
   const b64 = dl.fileContent.toString('base64');
+  const mime = /\.png$/i.test(fileID) ? 'image/png' : 'image/jpeg';
   const body = {
     model: ai.model,
     messages: [{
       role: 'user',
       content: [
         { type: 'text', text: PROMPT },
-        { type: 'image_url', image_url: { url: 'data:image/jpeg;base64,' + b64 } },
+        { type: 'image_url', image_url: { url: 'data:' + mime + ';base64,' + b64 } },
       ],
     }],
-    max_tokens: 16,
-    temperature: 0,
+    /* 推理型多模态模型（如 MiniMax M3.x）需要足够输出预算，否则思考段就把额度吃完了 */
+    max_tokens: 512,
   };
   const res = await postJson(ai.base_url, key, body);
-  const txt = (((res || {}).choices || [{}])[0].message || {}).content || '';
-  const m = String(txt).match(/\d+/);
-  if (!m) throw new Error('模型没返回数字：' + String(txt).slice(0, 60));
+  const msg = (((res || {}).choices || [{}])[0].message) || {};
+  const raw = String(msg.content || msg.reasoning_content || '');
+  /* 思考段混在正文里时先剥掉（<think>...</think>），剥完没数字再用原文兜底 */
+  const cleaned = raw.replace(/<think>[\s\S]*?<\/think>/gi, ' ').replace(/<\/?think>/gi, ' ');
+  const m = cleaned.match(/\d+/) || raw.match(/\d+/);
+  if (!m) throw new Error('模型没返回数字：' + raw.slice(0, 80));
   return Math.max(0, Math.min(9999, parseInt(m[0], 10)));
 }
 

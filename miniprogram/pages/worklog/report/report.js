@@ -108,7 +108,9 @@ Page({
     const d = new Date();
     const p2 = (n) => String(n).padStart(2, '0');
     const dir = '' + d.getFullYear() + p2(d.getMonth() + 1) + p2(d.getDate());
-    const path = 'wl_reports/' + dir + '/' + Date.now() + '-' + Math.random().toString(36).slice(2, 7) + '.jpg';
+    const extM = String(this.data.photo).match(/\.(png|jpe?g|webp)$/i);
+    const ext = extM ? extM[1].toLowerCase() : 'jpg';
+    const path = 'wl_reports/' + dir + '/' + Date.now() + '-' + Math.random().toString(36).slice(2, 7) + '.' + ext;
 
     wx.cloud.uploadFile({ cloudPath: path, filePath: this.data.photo })
       .then((res) => call('report', { action: 'submit', process_id: this.pid, qty, photo: res.fileID }))

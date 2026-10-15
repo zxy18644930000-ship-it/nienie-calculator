@@ -209,6 +209,8 @@ async function dayDetail(event) {
       photo: it.photo,
       ai_flag: !!it.ai_flag,
       ai_count: it.ai_count === undefined ? null : it.ai_count,
+      ai_status: it.ai_status || 'off',
+      ai_err: String(it.ai_err || '').slice(0, 120),
       review: it.review || 'none',
     })),
   };
