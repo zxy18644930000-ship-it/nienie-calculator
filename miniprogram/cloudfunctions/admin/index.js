@@ -167,13 +167,32 @@ async function workerSave(event) {
   return { ok: true };
 }
 
-/* 某天的全员汇总（按人聚合） */
+/* 某天的全员汇总（按人聚合）+ AI 对账（自报 vs AI 数） */
 async function dailyGet(event) {
   const date = /^\d{4}-\d{2}-\d{2}$/.test(String(event.date || '')) ? String(event.date) : todayStr();
   const agg = await db.collection('wl_reports').aggregate()
     .match({ date })
     .group({ _id: { openid: '$openid', pid: '$process_id' }, qty: $.sum('$qty'), amount_c: $.sum('$amount_c') })
     .end();
+
+  /* AI 侧的合计：只统计数成功的记录；AI 金额=各条 ai_count×单价 */
+  const aiAgg = await db.collection('wl_reports').aggregate()
+    .match({ date, ai_status: 'done' })
+    .group({
+      _id: '$openid',
+      ai_qty: $.sum('$ai_count'),
+      ai_amount_c: $.sum($.multiply(['$ai_count', '$price_c'])),
+      ai_records: $.sum(1),
+    })
+    .end();
+  const cntAgg = await db.collection('wl_reports').aggregate()
+    .match({ date })
+    .group({ _id: '$openid', records: $.sum(1) })
+    .end();
+  const aiBy = {};
+  (aiAgg.list || []).forEach((g) => { aiBy[g._id] = g; });
+  const cntBy = {};
+  (cntAgg.list || []).forEach((g) => { cntBy[g._id] = g.records; });
 
   const names = await nameMap();
   const procs = (await db.collection('wl_processes').limit(100).get()).data || [];
@@ -194,7 +213,19 @@ async function dailyGet(event) {
   const list = Object.keys(byWorker).map((k) => {
     const w = byWorker[k];
     w.items.sort((a, b) => b.qty - a.qty);
-    return { openid: w.openid, name: w.name, qty: w.qty, amount_text: moneyText(w.amount_c), items: w.items };
+    const a = aiBy[k] || {};
+    const records = cntBy[k] || 0;
+    const ai_records = a.ai_records || 0;
+    return {
+      openid: w.openid,
+      name: w.name,
+      qty: w.qty,
+      amount_text: moneyText(w.amount_c),
+      items: w.items,
+      ai_qty: a.ai_qty || 0,
+      ai_amount_text: moneyText(a.ai_amount_c || 0),
+      ai_missing: Math.max(0, records - ai_records),
+    };
   });
   list.sort((a, b) => Number(b.amount_text) - Number(a.amount_text));
 

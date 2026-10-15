@@ -28,13 +28,20 @@ Page({
       this.setData({
         ready: true,
         err: '',
-        list: (r.list || []).map((w) => ({
-          openid: w.openid,
-          name: w.name,
-          qty: w.qty,
-          amountText: w.amount_text,
-          itemsText: (w.items || []).map((it) => it.name + ' ' + it.qty + '件 ¥' + it.amount_text).join(' · '),
-        })),
+        list: (r.list || []).map((w) => {
+          const diff = (w.qty || 0) - (w.ai_qty || 0);
+          return {
+            openid: w.openid,
+            name: w.name,
+            qty: w.qty,
+            amountText: w.amount_text,
+            itemsText: (w.items || []).map((it) => it.name + ' ' + it.qty + '件 ¥' + it.amount_text).join(' · '),
+            aiQty: w.ai_qty || 0,
+            aiAmountText: w.ai_amount_text || '0',
+            aiMissing: w.ai_missing || 0,
+            diffText: (diff > 0 ? '+' : '') + diff,
+          };
+        }),
         totalText: r.total_text,
         totalQty: r.total_qty,
       });
@@ -117,9 +124,9 @@ Page({
       wx.showToast({ title: '这天还没有记录', icon: 'none' });
       return;
     }
-    const lines = [d.date + ' 报工汇总', '合计：' + d.totalQty + ' 件 · ¥' + d.totalText, ''];
+    const lines = [d.date + ' 报工汇总', '合计（自报）：' + d.totalQty + ' 件 · ¥' + d.totalText, ''];
     d.list.forEach((w) => {
-      lines.push(w.name + '：' + w.qty + ' 件 · ¥' + w.amountText);
+      lines.push(w.name + '：自报 ' + w.qty + ' 件 · ¥' + w.amountText + '；AI 数 ' + w.aiQty + ' 件 · ¥' + w.aiAmountText + '（差 ' + w.diffText + ' 件' + (w.aiMissing ? '，' + w.aiMissing + ' 条没数上' : '') + '）');
       lines.push('　' + w.itemsText);
     });
     wx.setClipboardData({ data: lines.join('\n') });

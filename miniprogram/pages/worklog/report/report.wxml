@@ -31,6 +31,7 @@
         </view>
         <view wx:if="{{aiNote && photoStatus === 'done'}}" class="photo-status">
           <text class="ps-text warn">{{aiNote}}</text>
+          <view class="retry-btn" bindtap="retryCount">重数一次</view>
         </view>
         <view class="photo-actions">
           <view class="btn ghost" bindtap="choosePhoto">重拍</view>

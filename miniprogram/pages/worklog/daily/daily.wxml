@@ -18,12 +18,16 @@
         <view class="wl-grow">
           <view class="wl-name">{{item.name}}</view>
           <view class="wl-meta">{{item.itemsText}}</view>
+          <view class="wl-meta ai-line">
+            AI 数 {{item.aiQty}} 件 · ¥{{item.aiAmountText}} · <text class="{{item.diffText === '0' ? '' : 'ai-diff'}}">差 {{item.diffText}} 件</text><text wx:if="{{item.aiMissing}}">（{{item.aiMissing}} 条没数上）</text>
+          </view>
         </view>
         <view class="day-right">
           <text class="wl-money">¥{{item.amountText}}</text>
           <text class="wl-meta">{{item.qty}} 件</text>
         </view>
       </view>
+      <view wx:if="{{list.length}}" class="wl-sub" style="margin-top:16rpx">「差」= 工人自报减 AI 数（正数=报得比数出来的多）；没数上的记录不计入 AI 合计</view>
     </view>
 
     <view class="btn primary wl-btn" bindtap="copySummary">复制汇总（发微信群/记账用）</view>

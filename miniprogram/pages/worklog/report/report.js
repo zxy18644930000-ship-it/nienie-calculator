@@ -89,8 +89,16 @@ Page({
     const ext = extM ? extM[1].toLowerCase() : 'jpg';
     const path = 'wl_reports/' + dir + '/' + Date.now() + '-' + Math.random().toString(36).slice(2, 7) + '.' + ext;
 
-    wx.cloud.uploadFile({ cloudPath: path, filePath: localPath })
+    /* 先压到 900 宽再上传：模型数得更快、存得也更省（压缩失败就用原图） */
+    wx.compressImage({ src: localPath, quality: 70, compressedWidth: 900 })
+      .catch(() => ({ tempFilePath: localPath }))
+      .then((cres) => {
+        if (seq !== this._photoSeq) return null;
+        const uploadPath = (cres && cres.tempFilePath) || localPath;
+        return wx.cloud.uploadFile({ cloudPath: path, filePath: uploadPath });
+      })
       .then((res) => {
+        if (!res) return null;
         if (seq !== this._photoSeq) {
           /* 已经重拍过了：这张作废删掉 */
           wx.cloud.deleteFile({ fileList: [res.fileID] }).catch(() => {});
@@ -134,6 +142,27 @@ Page({
     if (typeof this.data.aiSug !== 'number') return;
     try { wx.vibrateShort({ type: 'light' }); } catch (e) {}
     this.setDataPlus(this.data.aiSug);
+  },
+
+  /* 点「重数一次」：照片已传好，直接再让 AI 数一遍，不用重拍 */
+  retryCount() {
+    if (!this.data.fileID || this.data.photoStatus === 'counting') return;
+    this._photoSeq = (this._photoSeq || 0) + 1;
+    const seq = this._photoSeq;
+    this.setData({ photoStatus: 'counting', aiNote: '', aiSug: null });
+    call('countPhoto', { fileID: this.data.fileID })
+      .then((r) => {
+        if (seq !== this._photoSeq) return;
+        this.setData({ aiSug: typeof r.count === 'number' ? r.count : null, photoStatus: 'done' });
+        try { wx.vibrateShort({ type: 'light' }); } catch (e) {}
+      })
+      .catch((e) => {
+        if (seq !== this._photoSeq) return;
+        this.setData({
+          photoStatus: 'done',
+          aiNote: 'AI 没数出来：' + String((e && e.message) || '未知原因').slice(0, 50) + '（自己数一下填吧）',
+        });
+      });
   },
 
   onQtyInput(e) {

@@ -3,6 +3,7 @@ const https = require('https');
 const crypto = require('crypto');
 cloud.init({ env: cloud.DYNAMIC_CURRENT_ENV });
 const db = cloud.database();
+const _ = db.command;
 
 const md5 = (s) => crypto.createHash('md5').update(String(s)).digest('hex');
 
@@ -46,7 +47,7 @@ async function getCfg() {
   }
 }
 
-function postJson(urlStr, key, body) {
+function postJson(urlStr, key, body, timeoutMs) {
   return new Promise((resolve, reject) => {
     let u;
     try {
@@ -66,7 +67,7 @@ function postJson(urlStr, key, body) {
         Authorization: 'Bearer ' + key,
         'Content-Length': Buffer.byteLength(data),
       },
-      timeout: 45000,
+      timeout: timeoutMs || 26000,
     }, (res) => {
       let buf = '';
       res.on('data', (d) => { buf += d; });
@@ -85,7 +86,7 @@ function postJson(urlStr, key, body) {
   });
 }
 
-async function countOne(ai, fileID) {
+async function countOne(ai, fileID, timeoutMs) {
   const keyEnv = ai.key_env || 'VLM_API_KEY';
   const key = process.env[keyEnv];
   if (!key) throw new Error('云函数环境变量 ' + keyEnv + ' 还没配置');
@@ -103,10 +104,11 @@ async function countOne(ai, fileID) {
         { type: 'image_url', image_url: { url: 'data:' + mime + ';base64,' + b64 } },
       ],
     }],
-    /* 推理型多模态模型思考费额度：给足上限（正常 2~4 秒、几百 token 就答完，上限大只是兜底） */
+    /* 推理型多模态模型思考很费时间：实测真照片默认模式要 29 秒，low 模式 4 秒且答案一致 */
     max_tokens: 8192,
+    reasoning_effort: 'low',
   };
-  const res = await postJson(ai.base_url, key, body);
+  const res = await postJson(ai.base_url, key, body, timeoutMs);
   const ch = (((res || {}).choices || [{}])[0]) || {};
   const msg = ch.message || {};
   const content = String(msg.content || '');
@@ -151,19 +153,21 @@ exports.main = async (event) => {
 
   const ai = cfg.ai || {};
 
-  /* 单张即时数数（报工页拍完照立刻调）：只数不落库，结果放缓存供提交时取用；失败重试一次并记档 */
+  /* 单张即时数数（报工页拍完照立刻调）：只数不落库，结果放缓存供提交时取用。
+     单张给两次机会（各 26 秒，合计不超云函数 60 秒上限）；实测个别复杂照片一次要 40 秒。 */
   if (event.fileID) {
     if (!ai.enabled) return { ok: false, err: 'AI 数数未开启' };
     const fid = String(event.fileID);
     let lastErr = '';
-    for (let attempt = 1; attempt <= 2; attempt++) {
+    const budgets = [26000, 26000];
+    for (let attempt = 0; attempt < budgets.length; attempt++) {
       try {
-        const r = await countOne(ai, fid);
+        const r = await countOne(ai, fid, budgets[attempt]);
         await cacheCount(fid, r.count, r.raw);
         return { ok: true, count: r.count };
       } catch (e) {
         lastErr = String((e && e.message) || e).slice(0, 120);
-        console.log('[countPhoto] 第' + attempt + '次失败 fileID=' + fid + ' err=' + lastErr);
+        console.log('[countPhoto] 第' + (attempt + 1) + '次失败 fileID=' + fid + ' err=' + lastErr);
       }
     }
     await cacheFail(fid, lastErr);
@@ -172,32 +176,40 @@ exports.main = async (event) => {
 
   if (!ai.enabled) return { ok: true, skipped: 'AI 数数未开启（wl_config.ai.enabled=false）' };
 
-  const batch = Math.min(Math.max(Number((event && event.batch) || 5), 1), 20);
+  /* 批量补数：pending=新提交的；off=AI 开启前的老照片；retryErrors=手动重试判死的。
+     自适应时间预算：单次调用总耗时控制在 42 秒内，数不完的留给下一轮（每 5 分钟一轮）。
+     失败不清零：回到 pending 下轮再试，连败 4 次才标 error。 */
+  const maxCount = Math.min(Math.max(Number((event && event.batch) || 10), 1), 30);
+  const statuses = event.retryErrors ? ['pending', 'off', 'error'] : ['pending', 'off'];
   const r = await db.collection('wl_reports')
-    .where({ ai_status: 'pending' }).orderBy('ts', 'asc').limit(batch).get();
+    .where({ ai_status: _.in(statuses) }).orderBy('ts', 'asc').limit(maxCount).get();
   const list = r.data || [];
+  const started = Date.now();
 
   let done = 0;
   let failed = 0;
   for (const it of list) {
+    if (Date.now() - started > 42000) break;
     try {
-      const rr = await countOne(ai, it.photo);
+      const rr = await countOne(ai, it.photo, 26000);
       const count = rr.count;
       const dev = Math.abs(count - it.qty) / Math.max(it.qty, 1);
       await db.collection('wl_reports').doc(it._id).update({
-        data: {
-          ai_status: 'done',
-          ai_count: count,
-          ai_flag: dev > (ai.flag_ratio || 0.3),
-        },
+        data: { ai_status: 'done', ai_count: count, ai_flag: dev > (ai.flag_ratio || 0.3), ai_tries: 0 },
       });
       done++;
     } catch (e) {
+      const baseTries = (event.retryErrors && it.ai_status === 'error') ? 0 : (it.ai_tries || 0);
+      const tries = baseTries + 1;
       await db.collection('wl_reports').doc(it._id).update({
-        data: { ai_status: 'error', ai_err: String((e && e.message) || e).slice(0, 180) },
+        data: {
+          ai_status: tries >= 4 ? 'error' : 'pending',
+          ai_tries: tries,
+          ai_err: String((e && e.message) || e).slice(0, 180),
+        },
       });
       failed++;
     }
   }
-  return { ok: true, done, failed, pending_left: list.length === batch ? '还有' : '本批处理完' };
+  return { ok: true, done, failed, processed: done + failed, budget_ms: Date.now() - started };
 };

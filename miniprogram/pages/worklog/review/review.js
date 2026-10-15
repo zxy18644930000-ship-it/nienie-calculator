@@ -49,7 +49,7 @@ Page({
     if (this.data.checking) return;
     this.setData({ checking: true });
     loading('核对中，需要几秒');
-    call('countPhoto', { batch: 5 }).then((r) => {
+    call('countPhoto', { batch: 5, retryErrors: true }).then((r) => {
       hideLoading();
       this.setData({ checking: false });
       if (r.skipped) {

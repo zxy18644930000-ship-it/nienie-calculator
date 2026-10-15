@@ -62,6 +62,19 @@
 .ps-text { font-size: 24rpx; color: #A6907F; }
 .ps-text.warn { color: #D9363E; font-weight: 700; }
 
+.retry-btn {
+  display: inline-flex;
+  align-items: center;
+  margin-left: 16rpx;
+  padding: 8rpx 26rpx;
+  border-radius: 999rpx;
+  border: 3rpx solid #E04E2C;
+  color: #E04E2C;
+  font-size: 24rpx;
+  font-weight: 700;
+  vertical-align: middle;
+}
+
 .sug-chip {
   margin: 6rpx 0 16rpx;
   padding: 20rpx 0;

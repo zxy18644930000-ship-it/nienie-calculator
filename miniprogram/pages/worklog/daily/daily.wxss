@@ -18,6 +18,9 @@
   flex: none;
 }
 
+.ai-line { color: #8A7563; }
+.ai-diff { color: #D9363E; font-weight: 800; }
+
 .detail-scroll {
   max-height: 62vh;
 }
