@@ -122,6 +122,79 @@ exports.main = async (event) => {
     };
   }
 
+  /* action=aiGet：读当前 AI 数数配置 */
+  if (event.action === 'aiGet') {
+    let doc = null;
+    try { doc = (await db.collection('wl_config').doc('main').get()).data || {}; } catch (e) {}
+    return { ok: true, ai: (doc && doc.ai) || null };
+  }
+
+  /* action=photo：服务端取照片返回 base64（排查用；前端权限拿不到的跨用户照片） */
+  if (event.action === 'photo') {
+    const fileID = String(event.fileID || '');
+    if (!fileID) return { ok: false, err: '缺 fileID' };
+    try {
+      const dl = await cloud.downloadFile({ fileID });
+      const buf = dl.fileContent;
+      if (buf.length > 600 * 1024) return { ok: false, err: '图太大', size: buf.length };
+      return { ok: true, size: buf.length, b64: buf.toString('base64') };
+    } catch (e) {
+      return { ok: false, err: String((e && e.message) || e) };
+    }
+  }
+
+  /* action=recent：查看最近几条报工记录与即时数数缓存（排查用） */
+  if (event.action === 'recent') {
+    const out2 = { reports: [], aicounts: [] };
+    try {
+      const r = await db.collection('wl_reports').orderBy('ts', 'desc').limit(5).get();
+      out2.reports = (r.data || []).map((x) => ({
+        id: x._id, ts: x.ts, name: x.worker_name, process: x.process_name, qty: x.qty,
+        ai_count: x.ai_count, ai_status: x.ai_status, ai_flag: x.ai_flag, photo: x.photo,
+      }));
+    } catch (e) { out2.reports = 'ERR ' + String((e && e.message) || e); }
+    try {
+      const r2 = await db.collection('wl_aicounts').orderBy('ts', 'desc').limit(5).get();
+      out2.aicounts = (r2.data || []).map((x) => ({ id: x._id, fileID: x.fileID, count: x.count, ts: x.ts }));
+    } catch (e) { out2.aicounts = 'ERR ' + String((e && e.message) || e); }
+    return { ok: true, ...out2 };
+  }
+
+  /* action=setEnv：给 countPhoto 设环境变量（VLM_API_KEY）并把超时提到 60 秒 */
+  if (event.action === 'setEnv') {
+    const value = String(event.value || '');
+    if (!value) return { ok: false, err: '缺 value' };
+    try {
+      const resp = await scfRequest(sid, skey, token, region, 'UpdateFunctionConfiguration', {
+        FunctionName: 'countPhoto',
+        Namespace: namespace,
+        Timeout: 60,
+        Environment: { Variables: [{ Key: String(event.key || 'VLM_API_KEY'), Value: value }] },
+      });
+      const r = resp.Response || resp;
+      return { ok: !(r && r.Error), resp: r };
+    } catch (e) {
+      return { ok: false, err: String((e && e.message) || e) };
+    }
+  }
+
+  /* action=setAi：写 wl_config.main.ai（开关 + base_url + model） */
+  if (event.action === 'setAi') {
+    const ai = {
+      enabled: !!event.enabled,
+      flag_ratio: Number(event.flag_ratio) > 0 ? Number(event.flag_ratio) : 0.3,
+      base_url: String(event.base_url || ''),
+      model: String(event.model || ''),
+      key_env: 'VLM_API_KEY',
+    };
+    try {
+      await db.collection('wl_config').doc('main').update({ data: { ai } });
+      return { ok: true, ai };
+    } catch (e) {
+      return { ok: false, err: String((e && (e.errMsg || e.message)) || e) };
+    }
+  }
+
   const cronExpr = target.Config;
 
   /* 官方文档：timer 的 TriggerDesc 直接填 Cron 表达式；其余候选格式纯属兜底 */

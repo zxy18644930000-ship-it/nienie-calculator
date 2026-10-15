@@ -8,9 +8,9 @@ const md5 = (s) => crypto.createHash('md5').update(String(s)).digest('hex');
 
 /* 单张即时数数的结果暂存（提交时由 report 云函数按照片取用、取完即删），
    这样「建议数量」是服务端算的，前端伪造不了 */
-async function cacheCount(fileID, count) {
+async function cacheCount(fileID, count, raw) {
   const id = 'ai_' + md5(fileID);
-  const data = { fileID, count, ts: Date.now() };
+  const data = { fileID, count, ts: Date.now(), raw: String(raw || '').slice(0, 200) };
   try {
     await db.collection('wl_aicounts').doc(id).set({ data });
   } catch (e) {
@@ -21,8 +21,21 @@ async function cacheCount(fileID, count) {
   }
 }
 
-/* 注意：提示词里不要出现工人报的数量，避免模型被“带偏”直接复读报数 */
-const PROMPT = '数一数这张照片里一共有几个独立的物品（一件件分得开的成品或半成品，比如玩偶、包装袋）。只输出一个阿拉伯数字，不要输出任何其他文字。如果完全看不清，输出0。';
+/* 注意：提示词里不要出现工人报的数量，避免模型被“带偏”直接复读报数。
+   提示词要一次说清「什么算一件」：成品有带包装袋的、也有裸的（如画画工序），
+   袋子/标签都不单独计数——含糊会让推理模型陷入纠结把额度耗尽。 */
+const PROMPT = '数一数这张照片里有几个独立的成品（一件件分开、能数出来的成品；有的带塑料袋包装，有的没有包装，都算）。每个成品外部的塑料袋、挂着的标签卡片不算单独一件。只输出一行：答案：<数字>。看不清就输出：答案：0。';
+
+/* 解析模型输出：优先「答案：N」标记；没标记就取最后一个数字（防止分辨率/尺寸之类的数字排前面被误抓） */
+function parseCount(text) {
+  const strip = (s) => String(s || '').replace(/<think>[\s\S]*?<\/think>/gi, ' ').replace(/<\/?think>/gi, ' ');
+  const s = strip(text);
+  const marked = s.match(/答案\s*[:：]\s*(\d{1,4})/);
+  if (marked) return parseInt(marked[1], 10);
+  const all = s.match(/\d{1,4}/g);
+  if (all && all.length) return parseInt(all[all.length - 1], 10);
+  return null;
+}
 
 async function getCfg() {
   try {
@@ -90,17 +103,25 @@ async function countOne(ai, fileID) {
         { type: 'image_url', image_url: { url: 'data:' + mime + ';base64,' + b64 } },
       ],
     }],
-    /* 推理型多模态模型（如 MiniMax M3.x）需要足够输出预算，否则思考段就把额度吃完了 */
-    max_tokens: 512,
+    /* 推理型多模态模型思考费额度：给足上限（正常 2~4 秒、几百 token 就答完，上限大只是兜底） */
+    max_tokens: 8192,
   };
   const res = await postJson(ai.base_url, key, body);
-  const msg = (((res || {}).choices || [{}])[0].message) || {};
-  const raw = String(msg.content || msg.reasoning_content || '');
-  /* 思考段混在正文里时先剥掉（<think>...</think>），剥完没数字再用原文兜底 */
-  const cleaned = raw.replace(/<think>[\s\S]*?<\/think>/gi, ' ').replace(/<\/?think>/gi, ' ');
-  const m = cleaned.match(/\d+/) || raw.match(/\d+/);
-  if (!m) throw new Error('模型没返回数字：' + raw.slice(0, 80));
-  return Math.max(0, Math.min(9999, parseInt(m[0], 10)));
+  const ch = (((res || {}).choices || [{}])[0]) || {};
+  const msg = ch.message || {};
+  const content = String(msg.content || '');
+  const reasoning = String(msg.reasoning_content || '');
+  let n = content ? parseCount(content) : null;
+  if (n === null && !content) {
+    /* 正文为空（多为思考被截断）：只在思考里找到明确的「答案：N」才敢用，
+       否则宁可报错也绝不从思考文本里随便抓数字——曾把图片分辨率 1080 抓成件数 */
+    const m = String(reasoning).match(/答案\s*[:：]\s*(\d{1,4})/);
+    if (m) n = parseInt(m[1], 10);
+  }
+  if (n === null) {
+    throw new Error('模型没数出来（' + (ch.finish_reason || '') + '）：' + (content || reasoning).slice(0, 80));
+  }
+  return { count: Math.max(0, Math.min(9999, n)), raw: (content || reasoning).slice(0, 200) };
 }
 
 /* 处理一批待数数的报工照片（定时触发，或在「异常复核」页手动刷新） */
@@ -120,9 +141,9 @@ exports.main = async (event) => {
   if (event.fileID) {
     if (!ai.enabled) return { ok: false, err: 'AI 数数未开启' };
     try {
-      const count = await countOne(ai, String(event.fileID));
-      await cacheCount(String(event.fileID), count);
-      return { ok: true, count };
+      const r = await countOne(ai, String(event.fileID));
+      await cacheCount(String(event.fileID), r.count, r.raw);
+      return { ok: true, count: r.count };
     } catch (e) {
       return { ok: false, err: String((e && e.message) || e).slice(0, 120) };
     }
@@ -139,7 +160,8 @@ exports.main = async (event) => {
   let failed = 0;
   for (const it of list) {
     try {
-      const count = await countOne(ai, it.photo);
+      const rr = await countOne(ai, it.photo);
+      const count = rr.count;
       const dev = Math.abs(count - it.qty) / Math.max(it.qty, 1);
       await db.collection('wl_reports').doc(it._id).update({
         data: {
