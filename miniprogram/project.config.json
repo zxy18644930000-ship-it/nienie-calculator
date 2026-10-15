@@ -1,5 +1,6 @@
 {
   "compileType": "miniprogram",
+  "cloudfunctionRoot": "cloudfunctions/",
   "appid": "wx315704667caab763",
   "projectname": "nienie-calculator",
   "setting": {

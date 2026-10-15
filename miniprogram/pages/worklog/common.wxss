@@ -1,0 +1,78 @@
+/* 报工模块共用样式（各页 @import "../common.wxss"） */
+
+.wl-page { padding: 20rpx 24rpx calc(40rpx + env(safe-area-inset-bottom)); }
+
+.wl-card {
+  background: #ffffff;
+  border-radius: 28rpx;
+  padding: 26rpx 28rpx;
+  box-shadow: 0 10rpx 30rpx rgba(176, 120, 80, .12);
+  margin-bottom: 20rpx;
+}
+.wl-h {
+  font-size: 32rpx;
+  font-weight: 800;
+  margin-bottom: 16rpx;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16rpx;
+}
+.wl-sub { font-size: 24rpx; color: #A6907F; line-height: 1.5; }
+
+.wl-row {
+  display: flex;
+  align-items: center;
+  gap: 18rpx;
+  padding: 20rpx 0;
+  border-bottom: 2rpx solid #F6EAE0;
+}
+.wl-row:last-child { border-bottom: none; }
+.wl-grow { flex: 1; min-width: 0; }
+.wl-name { font-size: 30rpx; font-weight: 700; }
+.wl-meta { font-size: 24rpx; color: #A6907F; margin-top: 6rpx; }
+.wl-money { color: #E04E2C; font-weight: 800; font-size: 30rpx; white-space: nowrap; }
+
+.wl-btn {
+  padding: 22rpx 0;
+  font-size: 32rpx;
+  border-radius: 24rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+}
+.wl-btn.big { font-size: 36rpx; font-weight: 800; padding: 30rpx 0; border-radius: 28rpx; }
+.wl-btn.off { opacity: .6; }
+
+.wl-empty { text-align: center; color: #A6907F; font-size: 26rpx; padding: 60rpx 0; line-height: 1.6; }
+
+.wl-chip {
+  display: inline-flex;
+  align-items: center;
+  padding: 6rpx 18rpx;
+  border-radius: 999rpx;
+  font-size: 22rpx;
+  font-weight: 700;
+  background: #FFF1EA;
+  color: #E04E2C;
+}
+.wl-chip.warn { background: #FFE9E9; color: #D9363E; }
+.wl-chip.gray { background: #F3EDE7; color: #8A7563; }
+
+.wl-input {
+  width: 100%;
+  height: 88rpx;
+  line-height: 88rpx;
+  font-size: 32rpx;
+  color: #35261B;
+  padding: 0 22rpx;
+  border-radius: 20rpx;
+  border: 3rpx solid #F1E3D7;
+  background: #FFFBF7;
+  box-sizing: border-box;
+}
+
+.wl-foot { text-align: center; padding: 24rpx 0 6rpx; }
+.wl-link { font-size: 26rpx; font-weight: 700; color: #E04E2C; }
+.wl-foot .wl-link { color: #A6907F; font-weight: 600; font-size: 24rpx; }

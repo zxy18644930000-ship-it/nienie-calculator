@@ -1,0 +1,36 @@
+<view class="wl-page">
+
+  <view wx:if="{{err}}" class="wl-card">
+    <view class="wl-empty">{{err}}</view>
+    <view class="btn primary wl-btn" bindtap="load">重试</view>
+  </view>
+
+  <block wx:elif="{{ready}}">
+    <view class="wl-card">
+      <view class="wl-h">工人（{{list.length}} 人）</view>
+      <view wx:if="{{!list.length}}" class="wl-empty">还没有工人来登记。工人第一次扫码进来填了姓名，就会出现在这里。</view>
+      <view class="wl-row" wx:for="{{list}}" wx:key="id" data-id="{{item.id}}" bindtap="onEditRow">
+        <view class="wl-grow">
+          <view class="wl-name">{{item.name || '（没填名字）'}}</view>
+          <view class="wl-meta">今天：{{item.today_qty}} 件 · ¥{{item.today_amount_text}}</view>
+        </view>
+        <view class="wl-chip {{item.active ? '' : 'gray'}}" data-id="{{item.id}}" catchtap="toggleActive">
+          {{item.active ? '在职' : '已停用'}}
+        </view>
+      </view>
+    </view>
+    <view class="wl-sub" style="text-align:center">点一行可以帮他改名字；右边的「在职/已停用」可以开关</view>
+  </block>
+</view>
+
+<view wx:if="{{showEdit}}" class="modal-mask" bindtap="closeEdit">
+  <view class="modal-box" catchtap="noop">
+    <view class="modal-title">改名字</view>
+    <input class="modal-input" value="{{editName}}" maxlength="10" placeholder="姓名"
+           bindinput="onNameInput" confirm-type="done" bindconfirm="saveName" always-embed="{{true}}" />
+    <view class="modal-actions">
+      <view class="btn secondary modal-btn" bindtap="closeEdit">取消</view>
+      <view class="btn primary modal-btn" bindtap="saveName">保存</view>
+    </view>
+  </view>
+</view>

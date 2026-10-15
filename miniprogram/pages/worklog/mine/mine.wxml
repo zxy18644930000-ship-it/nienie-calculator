@@ -1,0 +1,31 @@
+<view class="wl-page">
+
+  <view wx:if="{{err}}" class="wl-card">
+    <view class="wl-empty">{{err}}</view>
+    <view class="btn primary wl-btn" bindtap="load">重试</view>
+  </view>
+
+  <block wx:elif="{{ready}}">
+    <view wx:if="{{!days.length}}" class="wl-card">
+      <view class="wl-empty">最近 14 天还没有报工记录</view>
+    </view>
+
+    <view class="wl-card" wx:for="{{days}}" wx:key="date">
+      <view class="wl-h">
+        <text>{{item.label}}</text>
+        <text class="wl-money">共 {{item.qty}} 件 · ¥{{item.amountText}}</text>
+      </view>
+      <view class="wl-row" wx:for="{{item.items}}" wx:for-item="it" wx:key="id">
+        <view class="wl-grow">
+          <view class="wl-name">{{it.process_name}} ×{{it.qty}}</view>
+          <view class="wl-meta">
+            {{it.time_text}}
+            <text wx:if="{{it.ai_flag}}" class="wl-chip warn" style="margin-left:12rpx">AI 核对异常</text>
+          </view>
+        </view>
+        <text class="wl-money">¥{{it.amount_text}}</text>
+        <image class="wl-thumb" src="{{it.photo}}" mode="aspectFill" data-f="{{it.photo}}" bindtap="previewPhoto" />
+      </view>
+    </view>
+  </block>
+</view>

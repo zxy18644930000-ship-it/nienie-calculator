@@ -4,6 +4,7 @@
       <text class="brand">捏捏乐算价</text>
       <text class="order-chip {{orderNo ? 'active' : ''}}">{{orderNo ? '单号 ' + orderNo : '单号 —'}}</text>
       <view class="top-actions">
+        <view wx:if="{{showWorklog}}" class="btn ghost" bindtap="openWorklog">报工</view>
         <view class="btn ghost" bindtap="openRecords">记录</view>
         <view class="btn ghost" bindtap="toggleEdit">{{editing ? '完成' : '编辑'}}</view>
       </view>

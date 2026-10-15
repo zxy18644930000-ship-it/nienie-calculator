@@ -1,10 +1,12 @@
 const { uid, cents, fmtMoney, genOrderNo } = require('../../utils/util');
 const store = require('../../utils/store');
+const { call } = require('../../utils/cloud');
 
 const MAX_ITEMS = 60;
 
 Page({
   data: {
+    showWorklog: false,
     items: [],
     editing: false,
     orderNo: '',
@@ -21,6 +23,7 @@ Page({
   },
 
   onLoad() {
+    this.checkWorklogRole();
     this.model = {
       items: store.loadItems(),
       counts: {},
@@ -340,5 +343,25 @@ Page({
 
   openRecords() {
     wx.navigateTo({ url: '/pages/records/records' });
+  },
+
+  /* ==================== 报工模块 ==================== */
+  /* 管理员留在算价页（顶栏显示「报工」入口）；工人/未识别身份自动去报工页。
+     云服务异常时保持不动，算价页照常可用。 */
+  checkWorklogRole() {
+    if (!wx.cloud) return;
+    call('login')
+      .then((r) => {
+        if (r.role !== 'admin') {
+          wx.reLaunch({ url: '/pages/worklog/home/home' });
+          return;
+        }
+        this.setData({ showWorklog: true });
+      })
+      .catch(() => {});
+  },
+
+  openWorklog() {
+    wx.navigateTo({ url: '/pages/worklog/home/home' });
   },
 });

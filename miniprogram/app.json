@@ -1,7 +1,14 @@
 {
   "pages": [
     "pages/index/index",
-    "pages/records/records"
+    "pages/records/records",
+    "pages/worklog/home/home",
+    "pages/worklog/report/report",
+    "pages/worklog/mine/mine",
+    "pages/worklog/processes/processes",
+    "pages/worklog/daily/daily",
+    "pages/worklog/review/review",
+    "pages/worklog/workers/workers"
   ],
   "window": {
     "navigationBarBackgroundColor": "#FFF6EF",

@@ -1,0 +1,9 @@
+{
+  "name": "countPhoto",
+  "version": "1.0.0",
+  "description": "报工模块-AI 照片数数（预警用）",
+  "main": "index.js",
+  "dependencies": {
+    "wx-server-sdk": "~2.6.3"
+  }
+}

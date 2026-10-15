@@ -1,0 +1,29 @@
+@import "../common.wxss";
+
+.filter-row { display: flex; gap: 14rpx; }
+
+.dev-line {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12rpx;
+  background: #FFFBF7;
+  border: 3rpx solid #F1E3D7;
+  border-radius: 20rpx;
+  padding: 18rpx 22rpx;
+  margin: 6rpx 0 20rpx;
+  font-size: 26rpx;
+  color: #6B5445;
+}
+.dev-num { font-size: 34rpx; font-weight: 900; color: #35261B; }
+
+.act-row { display: flex; gap: 20rpx; }
+.act-row .modal-btn { flex: 1; padding: 18rpx 0; font-size: 28rpx; border-radius: 20rpx; }
+
+.wl-thumb {
+  width: 110rpx;
+  height: 110rpx;
+  border-radius: 18rpx;
+  background: #F6EAE0;
+  flex: none;
+}

@@ -1,0 +1,58 @@
+<view class="wl-page">
+
+  <view wx:if="{{err}}" class="wl-card">
+    <view class="wl-empty">{{err}}</view>
+    <view class="btn primary wl-btn" bindtap="load">重试</view>
+  </view>
+
+  <block wx:elif="{{ready}}">
+    <view class="wl-card">
+      <view class="wl-h">
+        <picker mode="date" value="{{date}}" bindchange="onDate">
+          <view class="date-pill">{{date}} ▾</view>
+        </picker>
+        <text class="wl-money">合计 {{totalQty}} 件 · ¥{{totalText}}</text>
+      </view>
+      <view wx:if="{{!list.length}}" class="wl-empty">这天还没有报工记录</view>
+      <view class="wl-row" wx:for="{{list}}" wx:key="openid" data-openid="{{item.openid}}" bindtap="openDetail">
+        <view class="wl-grow">
+          <view class="wl-name">{{item.name}}</view>
+          <view class="wl-meta">{{item.itemsText}}</view>
+        </view>
+        <view class="day-right">
+          <text class="wl-money">¥{{item.amountText}}</text>
+          <text class="wl-meta">{{item.qty}} 件</text>
+        </view>
+      </view>
+    </view>
+
+    <view class="btn primary wl-btn" bindtap="copySummary">复制汇总（发微信群/记账用）</view>
+    <view class="wl-foot">
+      <text class="wl-link" bindtap="load">刷新</text>
+    </view>
+  </block>
+</view>
+
+<view wx:if="{{showDetail}}" class="modal-mask" bindtap="closeDetail">
+  <view class="modal-box" catchtap="noop">
+    <view class="modal-title">{{detailName}} · {{date}}</view>
+    <view class="wl-sub" style="margin-bottom:10rpx">长按某条记录可以删掉它</view>
+    <scroll-view scroll-y class="detail-scroll">
+      <view wx:if="{{!detailList.length}}" class="wl-empty">没有记录</view>
+      <view class="wl-row" wx:for="{{detailList}}" wx:key="id" data-id="{{item.id}}" bindlongpress="deleteRecord">
+        <view class="wl-grow">
+          <view class="wl-name">{{item.process_name}} ×{{item.qty}}</view>
+          <view class="wl-meta">
+            {{item.time_text}}
+            <text wx:if="{{item.ai_flag}}" class="wl-chip warn" style="margin-left:12rpx">AI 异常</text>
+          </view>
+        </view>
+        <text class="wl-money">¥{{item.amount_text}}</text>
+        <image class="wl-thumb" src="{{item.photo}}" mode="aspectFill" data-f="{{item.photo}}" bindtap="previewPhoto" />
+      </view>
+    </scroll-view>
+    <view class="modal-actions">
+      <view class="btn primary modal-btn" bindtap="closeDetail">关闭</view>
+    </view>
+  </view>
+</view>
