@@ -41,9 +41,9 @@
     </view>
 
     <view class="wl-card">
-      <view class="wl-h">第二步 · 品类（选填）</view>
+      <view class="wl-h">第二步 · 品类</view>
       <picker mode="selector" range="{{productNames}}" value="{{productIndex}}" bindchange="onProductChange">
-        <view class="picker-box {{productLabel ? '' : 'muted'}}">{{productLabel || '点这里选择（也可以跳过）'}} ▾</view>
+        <view class="picker-box {{productLabel ? '' : 'muted'}}">{{productLabel || '点这里选择'}} ▾</view>
       </picker>
     </view>
 
