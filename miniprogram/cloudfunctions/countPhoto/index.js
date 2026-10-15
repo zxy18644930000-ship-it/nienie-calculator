@@ -9,9 +9,9 @@ const md5 = (s) => crypto.createHash('md5').update(String(s)).digest('hex');
 
 /* 单张即时数数的结果暂存（提交时由 report 云函数按照片取用、取完即删），
    这样「建议数量」是服务端算的，前端伪造不了 */
-async function cacheCount(fileID, count, raw) {
+async function cacheCount(fileID, count, raw, votes) {
   const id = 'ai_' + md5(fileID);
-  const data = { fileID, count, ts: Date.now(), raw: String(raw || '').slice(0, 200) };
+  const data = { fileID, count, ts: Date.now(), raw: String(raw || '').slice(0, 200), votes: votes || [] };
   try {
     await db.collection('wl_aicounts').doc(id).set({ data });
   } catch (e) {
@@ -86,15 +86,7 @@ function postJson(urlStr, key, body, timeoutMs) {
   });
 }
 
-async function countOne(ai, fileID, timeoutMs) {
-  const keyEnv = ai.key_env || 'VLM_API_KEY';
-  const key = process.env[keyEnv];
-  if (!key) throw new Error('云函数环境变量 ' + keyEnv + ' 还没配置');
-  if (!ai.base_url || !ai.model) throw new Error('wl_config.ai 里还没填 base_url / model');
-
-  const dl = await cloud.downloadFile({ fileID });
-  const b64 = dl.fileContent.toString('base64');
-  const mime = /\.png$/i.test(fileID) ? 'image/png' : 'image/jpeg';
+async function askOnce(ai, key, b64, mime, timeoutMs) {
   const body = {
     model: ai.model,
     messages: [{
@@ -123,7 +115,40 @@ async function countOne(ai, fileID, timeoutMs) {
   if (n === null) {
     throw new Error('模型没数出来（' + (ch.finish_reason || '') + '）：' + (content || reasoning).slice(0, 80));
   }
-  return { count: Math.max(0, Math.min(9999, n)), raw: (content || reasoning).slice(0, 200) };
+  return Math.max(0, Math.min(9999, n));
+}
+
+/* 多数投票：并行数两遍（≈ 一遍的等待时间）；两遍不一致再补第三遍取多数；
+   三个都不同取中位数。实测同一张照片偶发抖动（17×5 里偶尔冒一个 18），投票能把这种压掉。 */
+async function countVote(ai, fileID) {
+  const keyEnv = ai.key_env || 'VLM_API_KEY';
+  const key = process.env[keyEnv];
+  if (!key) throw new Error('云函数环境变量 ' + keyEnv + ' 还没配置');
+  if (!ai.base_url || !ai.model) throw new Error('wl_config.ai 里还没填 base_url / model');
+
+  const dl = await cloud.downloadFile({ fileID });
+  const b64 = dl.fileContent.toString('base64');
+  const mime = /\.png$/i.test(fileID) ? 'image/png' : 'image/jpeg';
+
+  const TMO = 20000;
+  const votes = [];
+  const picks = await Promise.all([
+    askOnce(ai, key, b64, mime, TMO).catch(() => null),
+    askOnce(ai, key, b64, mime, TMO).catch(() => null),
+  ]);
+  picks.forEach((v) => { if (v !== null) votes.push(v); });
+  if (!votes.length) throw new Error('接口超时/失败（两次都没数出来）');
+  if (votes.length === 2 && votes[0] !== votes[1]) {
+    const third = await askOnce(ai, key, b64, mime, TMO).catch(() => null);
+    if (third !== null) votes.push(third);
+  }
+  const cnt = {};
+  votes.forEach((v) => { cnt[v] = (cnt[v] || 0) + 1; });
+  let best = votes[0];
+  let bestN = 0;
+  Object.keys(cnt).forEach((k) => { if (cnt[k] > bestN) { bestN = cnt[k]; best = Number(k); } });
+  if (bestN === 1 && votes.length === 3) best = votes.slice().sort((a, b) => a - b)[1];
+  return { count: best, votes };
 }
 
 /* 数数失败的记号（count=-1）：让失败可查、可回溯 */
@@ -153,25 +178,20 @@ exports.main = async (event) => {
 
   const ai = cfg.ai || {};
 
-  /* 单张即时数数（报工页拍完照立刻调）：只数不落库，结果放缓存供提交时取用。
-     单张给两次机会（各 26 秒，合计不超云函数 60 秒上限）；实测个别复杂照片一次要 40 秒。 */
+  /* 单张即时数数（报工页拍完照立刻调）：多数投票后放缓存供提交时取用 */
   if (event.fileID) {
     if (!ai.enabled) return { ok: false, err: 'AI 数数未开启' };
     const fid = String(event.fileID);
-    let lastErr = '';
-    const budgets = [26000, 26000];
-    for (let attempt = 0; attempt < budgets.length; attempt++) {
-      try {
-        const r = await countOne(ai, fid, budgets[attempt]);
-        await cacheCount(fid, r.count, r.raw);
-        return { ok: true, count: r.count };
-      } catch (e) {
-        lastErr = String((e && e.message) || e).slice(0, 120);
-        console.log('[countPhoto] 第' + (attempt + 1) + '次失败 fileID=' + fid + ' err=' + lastErr);
-      }
+    try {
+      const r = await countVote(ai, fid);
+      await cacheCount(fid, r.count, '', r.votes);
+      return { ok: true, count: r.count, votes: r.votes };
+    } catch (e) {
+      const msg = String((e && e.message) || e).slice(0, 120);
+      console.log('[countPhoto] 单张失败 fileID=' + fid + ' err=' + msg);
+      await cacheFail(fid, msg);
+      return { ok: false, err: msg };
     }
-    await cacheFail(fid, lastErr);
-    return { ok: false, err: lastErr };
   }
 
   if (!ai.enabled) return { ok: true, skipped: 'AI 数数未开启（wl_config.ai.enabled=false）' };
@@ -189,13 +209,13 @@ exports.main = async (event) => {
   let done = 0;
   let failed = 0;
   for (const it of list) {
-    if (Date.now() - started > 42000) break;
+    if (Date.now() - started > 30000) break;
     try {
-      const rr = await countOne(ai, it.photo, 26000);
+      const rr = await countVote(ai, it.photo);
       const count = rr.count;
       const dev = Math.abs(count - it.qty) / Math.max(it.qty, 1);
       await db.collection('wl_reports').doc(it._id).update({
-        data: { ai_status: 'done', ai_count: count, ai_flag: dev > (ai.flag_ratio || 0.3), ai_tries: 0 },
+        data: { ai_status: 'done', ai_count: count, ai_flag: dev > (ai.flag_ratio || 0.3), ai_tries: 0, ai_votes: rr.votes },
       });
       done++;
     } catch (e) {

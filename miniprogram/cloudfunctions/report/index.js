@@ -133,11 +133,15 @@ async function submit(openid, event) {
   /* 取「拍完照当时」的即时数数结果（服务端缓存，不信客户端传值）；取不到就走 pending 等定时器补数 */
   const aiConf = cfg.ai || {};
   let ai_count = null;
+  let ai_votes = [];
   try {
     const c = await db.collection('wl_aicounts').doc('ai_' + md5(photo)).get();
     const cd = c.data || {};
     /* count>=0 才是有效结果；-1 是失败记号，不用 */
-    if (typeof cd.count === 'number' && cd.count >= 0 && Date.now() - (cd.ts || 0) < 30 * 60 * 1000) ai_count = cd.count;
+    if (typeof cd.count === 'number' && cd.count >= 0 && Date.now() - (cd.ts || 0) < 30 * 60 * 1000) {
+      ai_count = cd.count;
+      ai_votes = cd.votes || [];
+    }
   } catch (e) {}
   const ai_status = ai_count !== null ? 'done' : (aiConf.enabled ? 'pending' : 'off');
   const ai_flag = ai_count !== null
@@ -158,6 +162,7 @@ async function submit(openid, event) {
       ts,
       ai_status,
       ai_count,
+      ai_votes,
       ai_flag,
       review: 'none',
     },
