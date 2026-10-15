@@ -74,6 +74,7 @@ Page({
   },
   goMine() { wx.navigateTo({ url: '/pages/worklog/mine/mine' }); },
   goProcesses() { wx.navigateTo({ url: '/pages/worklog/processes/processes' }); },
+  goProducts() { wx.navigateTo({ url: '/pages/worklog/products/products' }); },
   goDaily() { wx.navigateTo({ url: '/pages/worklog/daily/daily' }); },
   goReview() { wx.navigateTo({ url: '/pages/worklog/review/review' }); },
   goWorkers() { wx.navigateTo({ url: '/pages/worklog/workers/workers' }); },

@@ -57,6 +57,7 @@
           <view class="admin-btn" bindtap="goDaily">当日汇总</view>
           <view class="admin-btn" bindtap="goReview">异常复核</view>
           <view class="admin-btn" bindtap="goProcesses">工序管理</view>
+          <view class="admin-btn" bindtap="goProducts">品类管理</view>
           <view class="admin-btn" bindtap="goWorkers">工人管理</view>
           <view class="admin-btn" bindtap="goCalc">回到算价</view>
         </view>

@@ -12,13 +12,6 @@ Page({
 
   onShow() { this.load(); },
 
-  /* 顶部标签页：工序 ↔ 品类管理 */
-  goTab(e) {
-    if (e.currentTarget.dataset.t === 'proc') {
-      wx.redirectTo({ url: '/pages/worklog/processes/processes' });
-    }
-  },
-
   load() {
     loading('加载中');
     call('admin', { action: 'productList' }).then((r) => {
