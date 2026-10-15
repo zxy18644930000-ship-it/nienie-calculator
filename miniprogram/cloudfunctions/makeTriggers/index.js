@@ -87,6 +87,41 @@ exports.main = async (event) => {
   if (!target) return { ok: false, err: '未知触发器名' };
 
   const namespace = String(event.namespace || process.env.SCF_NAMESPACE || 'default');
+
+  /* action=list：列出 SCF 层真实存在的触发器（控制台面板可能不显示命令行创建的） */
+  if (event.action === 'list') {
+    const out = {};
+    for (const t of TRIGGERS) {
+      try {
+        const resp = await scfRequest(sid, skey, token, region, 'ListTriggers', {
+          FunctionName: t.FunctionName,
+          Namespace: namespace,
+          Limit: 20,
+        });
+        const r = resp.Response || resp;
+        out[t.FunctionName] = r.Error ? r.Error : (r.Triggers || []).map((x) => ({
+          name: x.TriggerName, type: x.Type, desc: x.TriggerDesc, enable: x.Enable,
+        }));
+      } catch (e) {
+        out[t.FunctionName] = String((e && e.message) || e);
+      }
+    }
+    return { ok: true, region, namespace, triggers: out };
+  }
+
+  /* action=hb：读 countPhoto 写入的心跳（判断定时器是否在自动触发） */
+  if (event.action === 'hb') {
+    let doc = null;
+    try { doc = (await db.collection('wl_config').doc('main').get()).data || {}; } catch (e) {}
+    return {
+      ok: true,
+      now: Date.now(),
+      cp_hb: (doc && doc.cp_hb) || null,
+      cp_hb_src: (doc && doc.cp_hb_src) || null,
+      age_s: doc && doc.cp_hb ? Math.round((Date.now() - doc.cp_hb) / 1000) : null,
+    };
+  }
+
   const cronExpr = target.Config;
 
   /* 官方文档：timer 的 TriggerDesc 直接填 Cron 表达式；其余候选格式纯属兜底 */
@@ -113,7 +148,7 @@ exports.main = async (event) => {
       const err = r && r.Error ? (r.Error.Code + ': ' + r.Error.Message) : null;
       attempts.push({ tag: c.tag, err });
       if (!err) return { ok: true, region, namespace, usedFormat: c.tag, resp: r };
-      if (/exist|已存在|InUse|重复/i.test(String(err))) {
+      if (/exist|存在|InUse|重复/i.test(String(err))) {
         return { ok: true, region, namespace, alreadyExists: target.Name, usedFormat: c.tag };
       }
     } catch (e) {

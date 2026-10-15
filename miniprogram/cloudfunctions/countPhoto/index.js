@@ -84,6 +84,14 @@ async function countOne(ai, fileID) {
 /* 处理一批待数数的报工照片（定时触发，或在「异常复核」页手动刷新） */
 exports.main = async (event) => {
   const cfg = await getCfg();
+
+  /* 心跳：每次被调用（含定时器自动触发）都记一笔，用来确认定时器还活着 */
+  try {
+    await db.collection('wl_config').doc('main').update({
+      data: { cp_hb: Date.now(), cp_hb_src: process.env.TRIGGER_SRC || 'api' },
+    });
+  } catch (e) {}
+
   const ai = cfg.ai || {};
   if (!ai.enabled) return { ok: true, skipped: 'AI 数数未开启（wl_config.ai.enabled=false）' };
 
