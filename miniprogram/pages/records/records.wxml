@@ -4,6 +4,11 @@
     <view class="btn ghost" bindtap="onImport">导入恢复</view>
   </view>
 
+  <view class="rsum">
+    <text class="rsum-main">共 {{records.length}} 单 · ¥{{sumText}}</text>
+    <text wx:if="{{devSummary}}" class="rsum-dev">{{devSummary}}</text>
+  </view>
+
   <scroll-view class="list" scroll-y>
     <view wx:if="{{records.length === 0}}" class="empty">还没有保存过单子</view>
     <view wx:for="{{records}}" wx:key="id" class="record">
@@ -15,6 +20,7 @@
       <text class="r-items">{{item.itemsText}}</text>
       <text wx:if="{{item.discText}}" class="r-disc">{{item.discText}}</text>
       <text class="r-total">¥{{item.totalText}}</text>
+      <text wx:if="{{item.devText}}" class="r-dev">{{item.devText}}</text>
       <text class="r-del" data-id="{{item.id}}" catchtap="onDelete">删除</text>
     </view>
     <view class="list-bottom"></view>

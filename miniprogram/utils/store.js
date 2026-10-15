@@ -7,7 +7,7 @@ const K_REC_DEL = 'n_rec_del';       // 已删记录的墓碑（跨设备同步"
 const K_SYNC_META = 'n_sync_meta';   // 每块数据的同步状态 {rev, dirtyTs}
 const DEFAULT_ITEMS = 15;
 const MAX_RECORDS = 500;
-const KINDS = ['items', 'discounts', 'records', 'recDel'];
+const KINDS = ['records', 'recDel']; // 只同步订单（单价/满减保持每台设备独立）
 const fs = wx.getFileSystemManager();
 
 function getSync(key, def) {
@@ -69,18 +69,35 @@ function setMeta(m) {
   try { wx.setStorageSync(K_SYNC_META, m); } catch (e) {}
 }
 
+/* 设备身份：订单要标明是哪台机器报的 */
+function getDevice() {
+  let d = getSync('n_device', null);
+  if (!d || !d.id) {
+    let name = '';
+    try {
+      let info = {};
+      if (wx.getDeviceInfo) info = wx.getDeviceInfo();
+      else if (wx.getSystemInfoSync) info = wx.getSystemInfoSync();
+      name = info.model || info.brand || '';
+      const plat = String(info.platform || '');
+      if (plat && plat !== 'ios' && plat !== 'android' && name.indexOf(plat) < 0) {
+        name = name ? (name + '（' + plat + '）') : plat;
+      }
+    } catch (e) {}
+    d = { id: 'd' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6), name: name || '未知设备' };
+    setSync('n_device', d);
+  }
+  return d;
+}
+
 function kindData(kind) {
-  if (kind === 'items') return store.loadItems();
-  if (kind === 'discounts') return store.loadDiscounts();
   if (kind === 'records') return store.loadRecords();
   if (kind === 'recDel') return getSync(K_REC_DEL, []);
   return null;
 }
 
 function setKindData(kind, data) {
-  if (kind === 'items') setSync(K_ITEMS, data);
-  else if (kind === 'discounts') setSync(K_DISCOUNTS, data);
-  else if (kind === 'records') setSync(K_RECORDS, (data || []).slice(0, MAX_RECORDS));
+  if (kind === 'records') setSync(K_RECORDS, (data || []).slice(0, MAX_RECORDS));
   else if (kind === 'recDel') setSync(K_REC_DEL, data || []);
 }
 
@@ -183,13 +200,8 @@ async function pushAll() {
 }
 
 function isMeaningful(kind) {
-  if (kind === 'items') return store.loadItems().some((it) => (Number(it.price) || 0) > 0 || (it.name || '') !== '');
   if (kind === 'records') return store.loadRecords().length > 0;
   if (kind === 'recDel') return (getSync(K_REC_DEL, []) || []).length > 0;
-  if (kind === 'discounts') {
-    const d = store.loadDiscounts();
-    return (d.rules || []).length > 0 || (d.keys || []).length > 0;
-  }
   return false;
 }
 
@@ -287,16 +299,19 @@ async function runSync() {
 
 const store = {
   loadItems() { return normalizeItems(getSync(K_ITEMS, null)); },
-  saveItems(items) {
-    setSync(K_ITEMS, items);
-    markDirty('items');
-  },
+  /* 单价只在本机（店主要求：每台设备保持独立，不同步） */
+  saveItems(items) { setSync(K_ITEMS, items); },
   loadRecords() {
     const r = getSync(K_RECORDS, []);
     return Array.isArray(r) ? r : [];
   },
   saveRecords(records) {
     const trimmed = records.slice(0, MAX_RECORDS);
+    /* 每条新订单打上设备标记（订单跨设备汇总时要区分是哪台机器报的） */
+    const dev = getDevice();
+    trimmed.forEach((r) => {
+      if (r && r.id && !r.dev) { r.dev = dev.id; r.devName = dev.name; }
+    });
     /* 对比出被删掉的 id，记墓碑（跨设备同步"删除"） */
     const oldIds = store.loadRecords().map((r) => r && r.id).filter(Boolean);
     const keep = {};
@@ -310,10 +325,8 @@ const store = {
     markDirty('records');
   },
   loadDiscounts() { return normalizeDiscounts(getSync(K_DISCOUNTS, null)); },
-  saveDiscounts(d) {
-    setSync(K_DISCOUNTS, d);
-    markDirty('discounts');
-  },
+  /* 满减也只在本机 */
+  saveDiscounts(d) { setSync(K_DISCOUNTS, d); },
   deleteImage(path) {
     if (!path) return;
     try { fs.unlinkSync(path); } catch (e) {}

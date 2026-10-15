@@ -48,3 +48,20 @@
   padding: 8rpx 14rpx;
 }
 .list-bottom { height: calc(30rpx + env(safe-area-inset-bottom)); }
+
+/* 跨设备汇总条 */
+.rsum {
+  flex: none;
+  margin: 12rpx 24rpx 0;
+  padding: 18rpx 26rpx;
+  background: #FFF7F1;
+  border: 3rpx solid #FFD9CC;
+  border-radius: 22rpx;
+  display: flex;
+  flex-direction: column;
+  gap: 6rpx;
+}
+.rsum-main { font-size: 30rpx; font-weight: 800; color: #35261B; }
+.rsum-dev { font-size: 23rpx; color: #A6907F; }
+
+.r-dev { font-size: 23rpx; color: #A6907F; }

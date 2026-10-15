@@ -19,18 +19,29 @@ Page({
   },
 
   refresh() {
-    const records = store.loadRecords().map((r) => ({
+    const raw = store.loadRecords();
+    const records = raw.map((r) => ({
       id: r.id,
       orderNo: r.orderNo || '',
       no: r.no || '',
       timeText: fmtTime(r.ts),
+      devText: r.devName ? ('来自 ' + r.devName) : '',
       itemsText: (Array.isArray(r.items) ? r.items : []).map((x) => x.no + '号×' + x.count).join(' + ') + '（共 ' + r.count + ' 件）',
       totalText: fmtMoney(r.total),
       discText: (Array.isArray(r.discounts) && r.discounts.length)
         ? ('原价 ¥' + fmtMoney(Number(r.subtotal) || (r.total + r.discounts.reduce((s, x) => s + x.amount, 0))) + ' · ' + r.discounts.map((x) => x.label + ' −¥' + fmtMoney(x.amount)).join(' · '))
         : '',
     }));
-    this.setData({ records });
+    /* 跨设备汇总：所有设备的订单合在一起看总量，并标明各设备各报了多少单 */
+    let sum = 0;
+    const byDev = {};
+    raw.forEach((r) => {
+      sum += Number(r.total) || 0;
+      const k = r.devName || '旧数据';
+      byDev[k] = (byDev[k] || 0) + 1;
+    });
+    const devSummary = Object.keys(byDev).map((k) => k + ' ' + byDev[k] + '单').join(' · ');
+    this.setData({ records, sumText: fmtMoney(sum), devSummary });
   },
 
   onDelete(e) {
