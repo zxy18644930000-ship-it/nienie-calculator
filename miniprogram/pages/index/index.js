@@ -346,14 +346,14 @@ Page({
   },
 
   /* ==================== 报工模块 ==================== */
-  /* 管理员留在算价页（顶栏显示「报工」入口）；工人/未识别身份自动去报工页。
+  /* 管理员留在算价页（顶栏显示「报工」入口）；非管理员回到选择入口页（走那页的口令流程）。
      云服务异常时保持不动，算价页照常可用。 */
   checkWorklogRole() {
     if (!wx.cloud) return;
     call('login')
       .then((r) => {
         if (r.role !== 'admin') {
-          wx.reLaunch({ url: '/pages/worklog/home/home' });
+          wx.reLaunch({ url: '/pages/entry/entry' });
           return;
         }
         this.setData({ showWorklog: true });

@@ -1,0 +1,34 @@
+<view class="entry-page">
+  <view class="entry-head">
+    <view class="entry-brand">捏捏乐</view>
+    <view class="entry-sub">今天想做什么？</view>
+  </view>
+
+  <view class="entry-btns">
+    <view class="entry-btn work" bindtap="goWorklog">
+      <view class="eb-title">报工时</view>
+      <view class="eb-sub">拍照 · 计件 · 汇总产值</view>
+    </view>
+    <view class="entry-btn calc" bindtap="goCalc">
+      <view class="eb-title">计算器</view>
+      <view class="eb-sub">算价 · 满减 · 记录</view>
+    </view>
+  </view>
+
+  <view class="entry-foot" wx:if="{{ready}}">
+    <text>{{isAdmin ? '本机已开通老板权限' : '工人用「报工时」；老板第一次用「计算器」需输入口令'}}</text>
+  </view>
+</view>
+
+<view wx:if="{{showPass}}" class="modal-mask" bindtap="closePass">
+  <view class="modal-box" catchtap="noop">
+    <view class="modal-title">计算器是老板专用的</view>
+    <text class="modal-text">输入管理口令，把这台设备设为老板设备（只需一次）。</text>
+    <input class="modal-input" style="margin-top:26rpx" type="text" password placeholder="管理口令"
+           bindinput="onPassInput" confirm-type="done" bindconfirm="submitPass" always-embed="{{true}}" />
+    <view class="modal-actions">
+      <view class="btn secondary modal-btn" bindtap="closePass">取消</view>
+      <view class="btn primary modal-btn" bindtap="submitPass">确定</view>
+    </view>
+  </view>
+</view>

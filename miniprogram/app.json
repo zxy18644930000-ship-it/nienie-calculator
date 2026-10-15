@@ -1,5 +1,6 @@
 {
   "pages": [
+    "pages/entry/entry",
     "pages/index/index",
     "pages/records/records",
     "pages/worklog/home/home",
