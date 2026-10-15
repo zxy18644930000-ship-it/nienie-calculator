@@ -1,0 +1,9 @@
+{
+  "name": "makeTriggers",
+  "version": "1.0.0",
+  "description": "报工模块-定时触发器修复工具（一次调用建一个）",
+  "main": "index.js",
+  "dependencies": {
+    "wx-server-sdk": "~2.6.3"
+  }
+}
