@@ -115,11 +115,13 @@ Page({
       .catch((e) => {
         if (seq !== this._photoSeq) return;
         const uploaded = !!this.data.fileID;
+        const msg = String((e && e.message) || '');
         this.setData({
           photoStatus: uploaded ? 'done' : 'failed',
-          aiNote: uploaded
-            ? ('AI 没数出来：' + String((e && e.message) || '未知原因').slice(0, 50) + '（自己数一下填吧）')
-            : '照片上传失败，请重拍',
+          /* AI 关闭时安静通过（不打扰工人）；其他失败显示原因 + 可重数一次 */
+          aiNote: !uploaded
+            ? '照片上传失败，请重拍'
+            : (msg.indexOf('未开启') >= 0 ? '' : ('AI 没数出来：' + msg.slice(0, 50) + '（自己数一下填吧）')),
         });
         if (!uploaded) wx.showToast({ title: '照片上传失败，请重拍', icon: 'none' });
       });
@@ -158,9 +160,10 @@ Page({
       })
       .catch((e) => {
         if (seq !== this._photoSeq) return;
+        const msg = String((e && e.message) || '未知原因');
         this.setData({
           photoStatus: 'done',
-          aiNote: 'AI 没数出来：' + String((e && e.message) || '未知原因').slice(0, 50) + '（自己数一下填吧）',
+          aiNote: msg.indexOf('未开启') >= 0 ? '' : ('AI 没数出来：' + msg.slice(0, 50) + '（自己数一下填吧）'),
         });
       });
   },

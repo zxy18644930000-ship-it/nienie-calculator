@@ -168,7 +168,7 @@ async function workerSave(event) {
 }
 
 /* 某天的全员汇总（按人聚合）+ AI 对账（自报 vs AI 数） */
-async function dailyGet(event) {
+async function dailyGet(event, cfg) {
   const date = /^\d{4}-\d{2}-\d{2}$/.test(String(event.date || '')) ? String(event.date) : todayStr();
   const agg = await db.collection('wl_reports').aggregate()
     .match({ date })
@@ -233,7 +233,7 @@ async function dailyGet(event) {
   let total_c = 0;
   list.forEach((w) => { total_c += Math.round(Number(w.amount_text) * 100); });
 
-  return { ok: true, date, list, total_qty, total_text: moneyText(total_c) };
+  return { ok: true, date, list, total_qty, total_text: moneyText(total_c), ai_enabled: !!((cfg.ai || {}).enabled) };
 }
 
 /* 某天某人的明细（含照片） */

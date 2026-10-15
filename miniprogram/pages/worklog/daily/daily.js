@@ -28,6 +28,7 @@ Page({
       this.setData({
         ready: true,
         err: '',
+        aiEnabled: !!r.ai_enabled,
         list: (r.list || []).map((w) => {
           const diff = (w.qty || 0) - (w.ai_qty || 0);
           return {
@@ -126,7 +127,11 @@ Page({
     }
     const lines = [d.date + ' 报工汇总', '合计（自报）：' + d.totalQty + ' 件 · ¥' + d.totalText, ''];
     d.list.forEach((w) => {
-      lines.push(w.name + '：自报 ' + w.qty + ' 件 · ¥' + w.amountText + '；AI 数 ' + w.aiQty + ' 件 · ¥' + w.aiAmountText + '（差 ' + w.diffText + ' 件' + (w.aiMissing ? '，' + w.aiMissing + ' 条没数上' : '') + '）');
+      if (d.aiEnabled) {
+        lines.push(w.name + '：自报 ' + w.qty + ' 件 · ¥' + w.amountText + '；AI 数 ' + w.aiQty + ' 件 · ¥' + w.aiAmountText + '（差 ' + w.diffText + ' 件' + (w.aiMissing ? '，' + w.aiMissing + ' 条没数上' : '') + '）');
+      } else {
+        lines.push(w.name + '：' + w.qty + ' 件 · ¥' + w.amountText);
+      }
       lines.push('　' + w.itemsText);
     });
     wx.setClipboardData({ data: lines.join('\n') });

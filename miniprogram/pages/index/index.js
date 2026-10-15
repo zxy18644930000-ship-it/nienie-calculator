@@ -40,6 +40,14 @@ Page({
     this.model.items = store.loadItems();
     this.model.discounts = store.loadDiscounts();
     this.syncAll();
+    store.syncKick();
+  },
+
+  /* 云端同步拉到了新数据（其他设备改的）：刷新商品格和满减，保留本单计数 */
+  onSyncApplied() {
+    this.model.items = store.loadItems();
+    this.model.discounts = store.loadDiscounts();
+    this.syncAll();
   },
 
   /* ==================== 渲染 ==================== */

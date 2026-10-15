@@ -1,0 +1,9 @@
+{
+  "name": "calc",
+  "version": "1.0.0",
+  "description": "算价数据云端同步（老板专用）",
+  "main": "index.js",
+  "dependencies": {
+    "wx-server-sdk": "~2.6.3"
+  }
+}

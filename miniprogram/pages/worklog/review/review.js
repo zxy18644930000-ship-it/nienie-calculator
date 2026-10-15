@@ -53,7 +53,7 @@ Page({
       hideLoading();
       this.setData({ checking: false });
       if (r.skipped) {
-        wx.showToast({ title: 'AI 数数还没开启（见部署手册）', icon: 'none', duration: 3000 });
+        wx.showToast({ title: 'AI 数数当前是关闭状态', icon: 'none', duration: 3000 });
       } else {
         wx.showToast({ title: '看完 ' + r.done + ' 张，出错 ' + r.failed + ' 张', icon: 'none', duration: 2600 });
         this.load();

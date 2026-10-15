@@ -10,6 +10,12 @@ Page({
 
   onShow() {
     this.refresh();
+    store.syncKick();
+  },
+
+  /* 云端同步拉到了新数据（其他设备改的）：刷新列表 */
+  onSyncApplied() {
+    this.refresh();
   },
 
   refresh() {
