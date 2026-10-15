@@ -23,6 +23,12 @@
       </view>
       <view wx:else>
         <image class="photo-img" src="{{photo}}" mode="aspectFit" bindtap="previewPhoto" />
+        <view class="photo-status">
+          <text wx:if="{{photoStatus === 'uploading'}}" class="ps-text">照片上传中…</text>
+          <text wx:elif="{{photoStatus === 'counting'}}" class="ps-text">AI 正在数这张照片…（可以先填数量，不耽误）</text>
+          <text wx:elif="{{photoStatus === 'failed'}}" class="ps-text warn">照片上传失败，请重拍</text>
+          <text wx:else class="ps-text">照片已就绪</text>
+        </view>
         <view class="photo-actions">
           <view class="btn ghost" bindtap="choosePhoto">重拍</view>
           <view class="btn ghost" bindtap="clearPhoto">删掉</view>
@@ -36,6 +42,9 @@
         <view class="qty-btn" data-d="-1" bindtap="qtyDelta">−</view>
         <input class="qty-input" type="number" value="{{qty || ''}}" bindinput="onQtyInput" confirm-type="done" />
         <view class="qty-btn" data-d="1" bindtap="qtyDelta">＋</view>
+      </view>
+      <view wx:if="{{aiSug !== null}}" class="sug-chip" bindtap="fillSug">
+        AI 建议 {{aiSug}} 件 · 点一下填入
       </view>
       <view class="wl-sub" style="text-align:center">这批一共做了多少件，就把数字填成多少</view>
     </view>

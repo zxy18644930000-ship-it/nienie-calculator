@@ -57,3 +57,19 @@
   border-radius: 26rpx;
   box-sizing: border-box;
 }
+
+.photo-status { margin-top: 14rpx; text-align: center; }
+.ps-text { font-size: 24rpx; color: #A6907F; }
+.ps-text.warn { color: #D9363E; font-weight: 700; }
+
+.sug-chip {
+  margin: 6rpx 0 16rpx;
+  padding: 20rpx 0;
+  border-radius: 22rpx;
+  background: #EDF7EE;
+  border: 3rpx dashed #9BCB9E;
+  color: #2E7D32;
+  font-size: 30rpx;
+  font-weight: 800;
+  text-align: center;
+}

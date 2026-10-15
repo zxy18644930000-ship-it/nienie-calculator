@@ -1,8 +1,11 @@
 const cloud = require('wx-server-sdk');
+const crypto = require('crypto');
 cloud.init({ env: cloud.DYNAMIC_CURRENT_ENV });
 const db = cloud.database();
 const _ = db.command;
 const $ = db.command.aggregate;
+
+const md5 = (s) => crypto.createHash('md5').update(String(s)).digest('hex');
 
 const TZ = 8 * 3600 * 1000;
 const todayStr = () => new Date(Date.now() + TZ).toISOString().slice(0, 10);
@@ -126,6 +129,20 @@ async function submit(openid, event) {
 
   const amount_c = proc.price_c * qty;
   const ts = Date.now();
+
+  /* 取「拍完照当时」的即时数数结果（服务端缓存，不信客户端传值）；取不到就走 pending 等定时器补数 */
+  const aiConf = cfg.ai || {};
+  let ai_count = null;
+  try {
+    const c = await db.collection('wl_aicounts').doc('ai_' + md5(photo)).get();
+    const cd = c.data || {};
+    if (typeof cd.count === 'number' && Date.now() - (cd.ts || 0) < 30 * 60 * 1000) ai_count = cd.count;
+  } catch (e) {}
+  const ai_status = ai_count !== null ? 'done' : (aiConf.enabled ? 'pending' : 'off');
+  const ai_flag = ai_count !== null
+    ? Math.abs(ai_count - qty) / Math.max(qty, 1) > (aiConf.flag_ratio || 0.3)
+    : false;
+
   await db.collection('wl_reports').add({
     data: {
       openid,
@@ -138,12 +155,17 @@ async function submit(openid, event) {
       photo,
       date: t,
       ts,
-      ai_status: cfg.ai && cfg.ai.enabled ? 'pending' : 'off',
-      ai_count: null,
-      ai_flag: false,
+      ai_status,
+      ai_count,
+      ai_flag,
       review: 'none',
     },
   });
+
+  /* 缓存用完即删（留在库里也没用） */
+  if (ai_count !== null) {
+    try { await db.collection('wl_aicounts').doc('ai_' + md5(photo)).remove(); } catch (e) {}
+  }
 
   const agg = await db.collection('wl_reports').aggregate()
     .match({ openid, date: t, process_id: pid })

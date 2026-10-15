@@ -29,7 +29,7 @@ async function nameMap() {
   return m;
 }
 
-const COLLECTIONS = ['wl_users', 'wl_processes', 'wl_reports', 'wl_summary', 'wl_config'];
+const COLLECTIONS = ['wl_users', 'wl_processes', 'wl_reports', 'wl_summary', 'wl_config', 'wl_aicounts'];
 
 async function ensureCollections() {
   for (const name of COLLECTIONS) {

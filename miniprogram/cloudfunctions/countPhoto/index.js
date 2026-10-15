@@ -1,7 +1,25 @@
 const cloud = require('wx-server-sdk');
 const https = require('https');
+const crypto = require('crypto');
 cloud.init({ env: cloud.DYNAMIC_CURRENT_ENV });
 const db = cloud.database();
+
+const md5 = (s) => crypto.createHash('md5').update(String(s)).digest('hex');
+
+/* 单张即时数数的结果暂存（提交时由 report 云函数按照片取用、取完即删），
+   这样「建议数量」是服务端算的，前端伪造不了 */
+async function cacheCount(fileID, count) {
+  const id = 'ai_' + md5(fileID);
+  const data = { fileID, count, ts: Date.now() };
+  try {
+    await db.collection('wl_aicounts').doc(id).set({ data });
+  } catch (e) {
+    try {
+      await db.createCollection('wl_aicounts');
+      await db.collection('wl_aicounts').doc(id).set({ data });
+    } catch (e2) {}
+  }
+}
 
 /* 注意：提示词里不要出现工人报的数量，避免模型被“带偏”直接复读报数 */
 const PROMPT = '数一数这张照片里一共有几个独立的物品（一件件分得开的成品或半成品，比如玩偶、包装袋）。只输出一个阿拉伯数字，不要输出任何其他文字。如果完全看不清，输出0。';
@@ -97,6 +115,19 @@ exports.main = async (event) => {
   } catch (e) {}
 
   const ai = cfg.ai || {};
+
+  /* 单张即时数数（报工页拍完照立刻调）：只数不落库，结果放缓存供提交时取用 */
+  if (event.fileID) {
+    if (!ai.enabled) return { ok: false, err: 'AI 数数未开启' };
+    try {
+      const count = await countOne(ai, String(event.fileID));
+      await cacheCount(String(event.fileID), count);
+      return { ok: true, count };
+    } catch (e) {
+      return { ok: false, err: String((e && e.message) || e).slice(0, 120) };
+    }
+  }
+
   if (!ai.enabled) return { ok: true, skipped: 'AI 数数未开启（wl_config.ai.enabled=false）' };
 
   const batch = Math.min(Math.max(Number((event && event.batch) || 5), 1), 20);
