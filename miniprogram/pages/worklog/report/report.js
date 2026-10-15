@@ -7,7 +7,7 @@ Page({
     pname: '',
     priceText: '0',
     photo: '',
-    qty: 1,
+    qty: 0,
     todayQty: 0,
     previewText: '0',
     submitting: false,
@@ -33,17 +33,15 @@ Page({
         setTimeout(() => wx.navigateBack(), 900);
         return;
       }
-      const saved = Number(wx.getStorageSync('wl_last_qty_' + this.pid)) || 0;
-      const qty = saved > 0 ? saved : 1;
       const todayItem = (r.today.list || []).find((x) => x.id === this.pid);
       this.setData({
         ready: true,
         err: '',
         pname: p.name,
         priceText: p.price_text,
-        qty,
+        qty: 0,
         todayQty: todayItem ? todayItem.qty : 0,
-        previewText: this.calcText(qty, p.price_text),
+        previewText: '0',
       });
     }).catch((e) => {
       hideLoading();
@@ -117,8 +115,8 @@ Page({
       .then((r) => {
         hideLoading();
         this._busy = false;
-        wx.setStorageSync('wl_last_qty_' + this.pid, qty);
-        this.setData({ submitting: false, photo: '', todayQty: r.today_qty });
+        /* 提交成功后数量归零、照片清空，下一批重新数重新填 */
+        this.setData({ submitting: false, photo: '', qty: 0, previewText: '0', todayQty: r.today_qty });
         wx.showToast({ title: '已记 ' + this.data.pname + ' ' + qty + ' 件', icon: 'none' });
         try { wx.vibrateShort({ type: 'medium' }); } catch (err) {}
       })
