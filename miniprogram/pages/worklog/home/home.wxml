@@ -29,13 +29,13 @@
           <text class="wl-sub">{{todayDate}} 今天</text>
         </view>
         <view class="today-main">
-          <text class="today-money">¥{{todayText}}</text>
+          <text wx:if="{{isAdmin}}" class="today-money">¥{{todayText}}</text>
           <text class="today-qty">共 {{todayQty}} 件</text>
         </view>
         <view class="today-list" wx:if="{{todayList.length}}">
           <view class="today-item" wx:for="{{todayList}}" wx:key="id">
             <text>{{item.name}}</text>
-            <text class="wl-money">{{item.qty}} 件 · ¥{{item.amountText}}</text>
+            <text class="wl-money">{{item.qty}} 件<text wx:if="{{isAdmin}}"> · ¥{{item.amountText}}</text></text>
           </view>
         </view>
       </view>
@@ -46,7 +46,7 @@
         <view class="proc-grid">
           <view class="proc-btn" wx:for="{{processes}}" wx:key="id" data-pid="{{item.id}}" bindtap="goReport">
             <text class="proc-name">{{item.name}}</text>
-            <text class="proc-price">¥{{item.priceText}}/件</text>
+            <text wx:if="{{isAdmin}}" class="proc-price">¥{{item.priceText}}/件</text>
           </view>
         </view>
       </view>

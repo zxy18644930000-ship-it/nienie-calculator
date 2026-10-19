@@ -10,7 +10,7 @@
     <view class="wl-card">
       <view class="wl-h">
         <text>{{pname}}</text>
-        <text class="wl-money">¥{{priceText}}/件</text>
+        <text wx:if="{{isAdmin}}" class="wl-money">¥{{priceText}}/件</text>
       </view>
       <view class="wl-sub">今天这个工序已记 {{todayQty}} 件</view>
     </view>
@@ -61,7 +61,7 @@
     </view>
 
     <view class="btn primary wl-btn big {{submitting ? 'off' : ''}}" bindtap="submit">
-      {{qty ? '提交（' + qty + ' 件 · ¥' + previewText + '）' : '提交'}}
+      {{qty ? (isAdmin ? '提交（' + qty + ' 件 · ¥' + previewText + '）' : '提交（' + qty + ' 件）') : '提交'}}
     </view>
 
     <view class="wl-foot">

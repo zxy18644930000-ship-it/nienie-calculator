@@ -4,6 +4,7 @@ Page({
   data: {
     ready: false,
     err: '',
+    isAdmin: false,
     pname: '',
     priceText: '0',
     photo: '',
@@ -44,6 +45,7 @@ Page({
       this.setData({
         ready: true,
         err: '',
+        isAdmin: r.role === 'admin',
         pname: p.name,
         priceText: p.price_text,
         productNames: ['（不选）'].concat((r.products || []).map((x) => x.name)),

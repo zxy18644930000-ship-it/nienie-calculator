@@ -40,17 +40,18 @@ function roleOf(openid, cfg, user) {
   return user && user.name ? 'worker' : 'guest';
 }
 
-/* 首页数据：工序列表 + 我今天的产值 */
+/* 首页数据：工序列表 + 我今天的产值（单价/金额只有管理员能看到） */
 async function home(openid) {
   const cfg = await getCfg();
   const user = await getUser(openid);
   const role = roleOf(openid, cfg, user);
+  const isAdmin = role === 'admin';
   const t = todayStr();
 
   const procs = await db.collection('wl_processes')
     .where({ active: true }).orderBy('cts', 'asc').limit(50).get();
   const processes = (procs.data || []).map((p) => ({
-    id: p._id, name: p.name, price_text: moneyText(p.price_c),
+    id: p._id, name: p.name, price_text: isAdmin ? moneyText(p.price_c) : '',
   }));
 
   /* 手工品名称选项（报工第二步的下拉框内容） */
@@ -72,7 +73,7 @@ async function home(openid) {
   const list = (agg.list || []).map((g) => {
     qty += g.qty;
     amount_c += g.amount_c;
-    return { id: g._id.pid, name: g._id.pname, qty: g.qty, amount_text: moneyText(g.amount_c) };
+    return { id: g._id.pid, name: g._id.pname, qty: g.qty, amount_text: isAdmin ? moneyText(g.amount_c) : '' };
   });
   list.sort((a, b) => b.qty - a.qty);
 
@@ -80,10 +81,11 @@ async function home(openid) {
     ok: true,
     openid,
     role,
+    is_admin: isAdmin,
     name: user ? user.name : '',
     processes,
     products,
-    today: { date: t, qty, amount_text: moneyText(amount_c), list },
+    today: { date: t, qty, amount_text: isAdmin ? moneyText(amount_c) : '', list },
   };
 }
 
@@ -191,11 +193,14 @@ async function submit(openid, event) {
     .end();
   const today_qty = (agg.list && agg.list[0] && agg.list[0].qty) || 0;
 
-  return { ok: true, today_qty, amount_text: moneyText(amount_c) };
+  return { ok: true, today_qty, amount_text: role === 'admin' ? moneyText(amount_c) : '' };
 }
 
-/* 我的记录（按天分组） */
+/* 我的记录（按天分组；单价/金额只有管理员能看到） */
 async function mine(openid, event) {
+  const cfg = await getCfg();
+  const user = await getUser(openid);
+  const isAdmin = roleOf(openid, cfg, user) === 'admin';
   const days = Math.min(Math.max(Number(event.days) || 14, 1), 31);
   const cutoff = dayStr(Date.now() - (days - 1) * 86400 * 1000);
   const r = await db.collection('wl_reports')
@@ -212,7 +217,7 @@ async function mine(openid, event) {
       process_name: it.process_name,
       item_name: it.item_name || '',
       qty: it.qty,
-      amount_text: moneyText(it.amount_c),
+      amount_text: isAdmin ? moneyText(it.amount_c) : '',
       time_text: timeText(it.ts),
       photo: it.photo,
       ai_flag: !!it.ai_flag,
@@ -221,9 +226,9 @@ async function mine(openid, event) {
 
   const list = Object.keys(map).sort().reverse().map((k) => {
     const d = map[k];
-    return { date: d.date, qty: d.qty, amount_text: moneyText(d.amount_c), items: d.items };
+    return { date: d.date, qty: d.qty, amount_text: isAdmin ? moneyText(d.amount_c) : '', items: d.items };
   });
-  return { ok: true, days: list };
+  return { ok: true, is_admin: isAdmin, days: list };
 }
 
 exports.main = async (event) => {

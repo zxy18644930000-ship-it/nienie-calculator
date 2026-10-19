@@ -3,7 +3,7 @@ const { call, loading, hideLoading } = require('../../../utils/cloud');
 const WD = ['日', '一', '二', '三', '四', '五', '六'];
 
 Page({
-  data: { ready: false, err: '', days: [] },
+  data: { ready: false, err: '', isAdmin: false, days: [] },
 
   onShow() { this.load(); },
 
@@ -16,6 +16,7 @@ Page({
       this.setData({
         ready: true,
         err: '',
+        isAdmin: !!r.is_admin,
         days: (r.days || []).map((d) => {
           const dt = new Date(d.date + 'T00:00:00');
           let label = (dt.getMonth() + 1) + '月' + dt.getDate() + '日 周' + WD[dt.getDay()];
