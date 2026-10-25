@@ -6,7 +6,9 @@ const K_DISCOUNTS = 'n_discounts';
 const K_REC_DEL = 'n_rec_del';       // 已删记录的墓碑（跨设备同步"删除"用）
 const K_SYNC_META = 'n_sync_meta';   // 每块数据的同步状态 {rev, dirtyTs}
 const DEFAULT_ITEMS = 15;
-const MAX_RECORDS = 500;
+const MAX_RECORDS = 1000;
+/* 小程序单个 storage key 上限 1MB、云同步上限 900KB：记录再多也按体积兜底，只保留最近的 */
+const MAX_RECORDS_BYTES = 600 * 1024;
 const KINDS = ['records', 'recDel']; // 只同步订单（单价/满减保持每台设备独立）
 const fs = wx.getFileSystemManager();
 
@@ -20,6 +22,20 @@ function getSync(key, def) {
 }
 function setSync(key, val) {
   try { wx.setStorageSync(key, val); } catch (e) {}
+}
+
+/* 记录按「最新在前」排序；先按条数截断，再按体积兜底（超出时成比例丢最旧的） */
+function trimRecords(list) {
+  let out = (list || []).slice(0, MAX_RECORDS);
+  const size = () => {
+    try { return JSON.stringify(out).length; } catch (e) { return 0; }
+  };
+  let sz = size();
+  while (out.length > 1 && sz > MAX_RECORDS_BYTES) {
+    out = out.slice(0, Math.max(1, Math.floor(out.length * 0.8)));
+    sz = size();
+  }
+  return out;
 }
 
 function makeDefaultItems() {
@@ -97,7 +113,7 @@ function kindData(kind) {
 }
 
 function setKindData(kind, data) {
-  if (kind === 'records') setSync(K_RECORDS, (data || []).slice(0, MAX_RECORDS));
+  if (kind === 'records') setSync(K_RECORDS, trimRecords(data));
   else if (kind === 'recDel') setSync(K_REC_DEL, data || []);
 }
 
@@ -124,10 +140,9 @@ function mergeRecords(local, cloud, dels) {
   (local || []).forEach((r) => { if (r && r.id && !map[r.id]) map[r.id] = r; });
   const delSet = {};
   (dels || []).forEach((id) => { delSet[id] = 1; });
-  return Object.keys(map).map((k) => map[k])
+  return trimRecords(Object.keys(map).map((k) => map[k])
     .filter((r) => !delSet[r.id])
-    .sort((a, b) => (Number(b.ts) || 0) - (Number(a.ts) || 0))
-    .slice(0, MAX_RECORDS);
+    .sort((a, b) => (Number(b.ts) || 0) - (Number(a.ts) || 0)));
 }
 
 async function pushKind(kind) {
@@ -306,7 +321,7 @@ const store = {
     return Array.isArray(r) ? r : [];
   },
   saveRecords(records) {
-    const trimmed = records.slice(0, MAX_RECORDS);
+    const trimmed = trimRecords(records);
     /* 每条新订单打上设备标记（订单跨设备汇总时要区分是哪台机器报的） */
     const dev = getDevice();
     trimmed.forEach((r) => {
