@@ -33,14 +33,15 @@ async function nameMap() {
 async function tempUrls(fileIDs) {
   const ids = (fileIDs || []).filter((x) => x && String(x).indexOf('cloud://') === 0);
   if (!ids.length) return {};
-  try {
-    const r = await cloud.getTempFileURL({ fileList: ids });
-    const m = {};
-    (r.fileList || []).forEach((f) => { if (f.tempFileURL) m[f.fileID] = f.tempFileURL; });
-    return m;
-  } catch (e) {
-    return {};
+  const m = {};
+  /* getTempFileURL 单次最多 50 个，超过会整批失败 → 按 50 分批换 */
+  for (let i = 0; i < ids.length; i += 50) {
+    try {
+      const r = await cloud.getTempFileURL({ fileList: ids.slice(i, i + 50) });
+      (r.fileList || []).forEach((f) => { if (f.tempFileURL) m[f.fileID] = f.tempFileURL; });
+    } catch (e) { /* 某批失败不影响其他批 */ }
   }
+  return m;
 }
 
 const COLLECTIONS = ['wl_users', 'wl_processes', 'wl_reports', 'wl_summary', 'wl_config', 'wl_aicounts', 'wl_products'];

@@ -206,7 +206,7 @@ async function mine(openid, event) {
   const cutoff = dayStr(Date.now() - (days - 1) * 86400 * 1000);
   const r = await db.collection('wl_reports')
     .where({ openid, date: _.gte(cutoff) })
-    .orderBy('ts', 'desc').limit(500).get();
+    .orderBy('ts', 'desc').limit(1000).get();
 
   const map = {};
   (r.data || []).forEach((it) => {
