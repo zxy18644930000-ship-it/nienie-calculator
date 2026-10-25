@@ -18,6 +18,7 @@ exports.main = async (event) => {
   const agg = await db.collection('wl_reports').aggregate()
     .match({ date })
     .group({ _id: { openid: '$openid', pid: '$process_id' }, qty: $.sum('$qty'), amount_c: $.sum('$amount_c') })
+    .limit(1000)
     .end();
 
   const users = (await db.collection('wl_users').limit(200).get()).data || [];

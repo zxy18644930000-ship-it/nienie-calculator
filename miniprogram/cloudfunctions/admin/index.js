@@ -137,6 +137,7 @@ async function workerList() {
   const agg = await db.collection('wl_reports').aggregate()
     .match({ date: t })
     .group({ _id: '$openid', qty: $.sum('$qty'), amount_c: $.sum('$amount_c') })
+    .limit(1000)
     .end();
   const stat = {};
   (agg.list || []).forEach((g) => { stat[g._id] = g; });
@@ -223,6 +224,7 @@ async function dailyGet(event, cfg) {
   const agg = await db.collection('wl_reports').aggregate()
     .match({ date })
     .group({ _id: { openid: '$openid', pid: '$process_id' }, qty: $.sum('$qty'), amount_c: $.sum('$amount_c') })
+    .limit(1000)
     .end();
 
   /* AI 侧的合计：只统计数成功的记录；AI 金额=各条 ai_count×单价 */
@@ -234,10 +236,12 @@ async function dailyGet(event, cfg) {
       ai_amount_c: $.sum($.multiply(['$ai_count', '$price_c'])),
       ai_records: $.sum(1),
     })
+    .limit(1000)
     .end();
   const cntAgg = await db.collection('wl_reports').aggregate()
     .match({ date })
     .group({ _id: '$openid', records: $.sum(1) })
+    .limit(1000)
     .end();
   const aiBy = {};
   (aiAgg.list || []).forEach((g) => { aiBy[g._id] = g; });

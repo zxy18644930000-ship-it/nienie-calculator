@@ -66,6 +66,7 @@ async function home(openid) {
   const agg = await db.collection('wl_reports').aggregate()
     .match({ openid, date: t })
     .group({ _id: { pid: '$process_id', pname: '$process_name' }, qty: $.sum('$qty'), amount_c: $.sum('$amount_c') })
+    .limit(1000)
     .end();
 
   let qty = 0;
