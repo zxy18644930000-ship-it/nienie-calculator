@@ -29,7 +29,7 @@
           <text class="wl-sub">{{todayDate}} 今天</text>
         </view>
         <view class="today-main">
-          <text wx:if="{{isAdmin}}" class="today-money">¥{{todayText}}</text>
+          <text class="today-money">¥{{todayText}}</text>
           <text class="today-qty">共 {{todayQty}} 件</text>
         </view>
         <view class="today-list" wx:if="{{todayList.length}}">

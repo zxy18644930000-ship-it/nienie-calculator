@@ -86,7 +86,8 @@ async function home(openid) {
     name: user ? user.name : '',
     processes,
     products,
-    today: { date: t, qty, amount_text: isAdmin ? moneyText(amount_c) : '', list },
+    /* 今日总金额对本人可见（员工也能看到自己今天做了多少钱）；分项金额仍只给管理员 */
+    today: { date: t, qty, amount_text: moneyText(amount_c), list },
   };
 }
 
