@@ -1,0 +1,15 @@
+{
+  "compileType": "miniprogram",
+  "cloudfunctionRoot": "cloudfunctions/",
+  "appid": "wx878e372fa0a017e1",
+  "projectname": "nienie-calculator-new",
+  "setting": {
+    "es6": true,
+    "enhance": true,
+    "postcss": true,
+    "minified": false,
+    "urlCheck": false,
+    "ignoreUploadUnusedFiles": true
+  },
+  "condition": {}
+}

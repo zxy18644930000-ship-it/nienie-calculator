@@ -1,0 +1,9 @@
+@import "../common.wxss";
+
+.wl-thumb {
+  width: 92rpx;
+  height: 92rpx;
+  border-radius: 16rpx;
+  background: #F6EAE0;
+  flex: none;
+}

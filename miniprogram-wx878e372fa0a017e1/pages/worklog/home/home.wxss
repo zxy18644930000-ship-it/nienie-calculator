@@ -1,0 +1,69 @@
+@import "../common.wxss";
+
+.today-card {
+  background: linear-gradient(160deg, #FFF3EA, #FFFFFF 65%);
+}
+.today-line {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16rpx;
+}
+.today-hi { font-size: 32rpx; font-weight: 800; }
+.today-main {
+  display: flex;
+  align-items: baseline;
+  gap: 20rpx;
+  margin-top: 10rpx;
+}
+.today-money { font-size: 76rpx; line-height: 1.15; font-weight: 900; color: #E04E2C; }
+.today-qty { font-size: 26rpx; color: #A6907F; font-weight: 600; }
+.today-list {
+  margin-top: 18rpx;
+  border-top: 2rpx solid #F6EAE0;
+  padding-top: 6rpx;
+}
+.today-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16rpx;
+  padding: 10rpx 0;
+  font-size: 26rpx;
+  color: #6B5445;
+}
+.today-item .wl-money { font-size: 26rpx; }
+
+.proc-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 18rpx;
+}
+.proc-btn {
+  background: #FFF7F1;
+  border: 3rpx solid #FFD9CC;
+  border-radius: 26rpx;
+  padding: 32rpx 20rpx;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10rpx;
+  box-sizing: border-box;
+}
+.proc-name { font-size: 34rpx; font-weight: 800; color: #35261B; }
+.proc-price { font-size: 24rpx; color: #E04E2C; font-weight: 700; }
+
+.admin-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 18rpx;
+}
+.admin-btn {
+  background: #F7F3EF;
+  border-radius: 22rpx;
+  padding: 28rpx 20rpx;
+  text-align: center;
+  font-size: 28rpx;
+  font-weight: 700;
+  color: #35261B;
+}

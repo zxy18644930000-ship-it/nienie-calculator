@@ -1,0 +1,34 @@
+@import "../common.wxss";
+
+.date-pill {
+  font-size: 32rpx;
+  font-weight: 800;
+  color: #35261B;
+  background: #FFF7F1;
+  border: 3rpx solid #FFD9CC;
+  border-radius: 18rpx;
+  padding: 10rpx 22rpx;
+}
+
+.day-right {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 4rpx;
+  flex: none;
+}
+
+.ai-line { color: #8A7563; }
+.ai-diff { color: #D9363E; font-weight: 800; }
+
+.detail-scroll {
+  max-height: 62vh;
+}
+
+.wl-thumb {
+  width: 92rpx;
+  height: 92rpx;
+  border-radius: 16rpx;
+  background: #F6EAE0;
+  flex: none;
+}

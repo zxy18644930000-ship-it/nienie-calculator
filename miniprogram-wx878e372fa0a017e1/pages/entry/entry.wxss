@@ -1,0 +1,36 @@
+.entry-page {
+  min-height: 100vh;
+  padding: 140rpx 48rpx 60rpx;
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+}
+
+.entry-head { margin-bottom: 90rpx; }
+.entry-brand { font-size: 68rpx; font-weight: 900; letter-spacing: 4rpx; color: #35261B; }
+.entry-sub { margin-top: 14rpx; font-size: 30rpx; color: #A6907F; }
+
+.entry-btns { display: flex; flex-direction: column; gap: 34rpx; }
+
+.entry-btn {
+  border-radius: 32rpx;
+  padding: 58rpx 48rpx;
+  box-shadow: 0 12rpx 32rpx rgba(176, 120, 80, .14);
+}
+.entry-btn.work { background: linear-gradient(135deg, #FFB37A, #FF7A4D); }
+.entry-btn.calc { background: #FFFFFF; border: 3rpx solid #FFD9CC; }
+
+.eb-title { font-size: 48rpx; font-weight: 900; }
+.entry-btn.work .eb-title { color: #FFFFFF; }
+.entry-btn.calc .eb-title { color: #35261B; }
+.eb-sub { margin-top: 12rpx; font-size: 26rpx; }
+.entry-btn.work .eb-sub { color: rgba(255, 255, 255, .88); }
+.entry-btn.calc .eb-sub { color: #A6907F; }
+
+.entry-foot {
+  margin-top: auto;
+  text-align: center;
+  font-size: 24rpx;
+  color: #A6907F;
+  line-height: 1.6;
+}

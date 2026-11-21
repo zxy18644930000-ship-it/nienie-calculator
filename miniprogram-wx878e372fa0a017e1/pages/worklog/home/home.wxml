@@ -1,0 +1,97 @@
+<view class="wl-page">
+
+  <view wx:if="{{!ready}}" class="wl-card"><view class="wl-empty">加载中…</view></view>
+
+  <view wx:elif="{{err}}" class="wl-card">
+    <view class="wl-empty">{{err}}</view>
+    <view class="btn primary wl-btn" bindtap="retry">重试</view>
+  </view>
+
+  <block wx:else>
+
+    <view wx:if="{{role === 'blocked'}}" class="wl-card">
+      <view class="wl-h">账号已停用</view>
+      <view class="wl-sub">请联系老板开通后再试</view>
+    </view>
+
+    <view wx:elif="{{needName}}" class="wl-card">
+      <view class="wl-h">你好！第一次使用</view>
+      <view class="wl-sub" style="margin-bottom:22rpx">请填一下你的姓名，老板才能给你对账</view>
+      <input class="wl-input" placeholder="你的姓名" maxlength="10" bindinput="onNameInput" bindconfirm="saveName" confirm-type="done" />
+      <view class="btn primary wl-btn" style="margin-top:24rpx" bindtap="saveName">保存</view>
+    </view>
+
+    <block wx:else>
+
+      <view class="wl-card today-card">
+        <view class="today-line">
+          <text class="today-hi">你好，{{isAdmin && !name ? '老板' : name}}</text>
+          <text class="wl-sub">{{todayDate}} 今天</text>
+        </view>
+        <view class="today-main">
+          <text class="today-money">¥{{todayText}}</text>
+          <text class="today-qty">共 {{todayQty}} 件</text>
+        </view>
+        <view class="today-list" wx:if="{{todayList.length}}">
+          <view class="today-item" wx:for="{{todayList}}" wx:key="id">
+            <text>{{item.name}}</text>
+            <text class="wl-money">{{item.qty}} 件<text wx:if="{{isAdmin}}"> · ¥{{item.amountText}}</text></text>
+          </view>
+        </view>
+      </view>
+
+      <view class="wl-card">
+        <view class="wl-h">报工</view>
+        <view wx:if="{{!processes.length}}" class="wl-empty">还没有工序{{isAdmin ? '，先在「工序管理」里添加' : '，请让老板先添加'}}</view>
+        <view class="proc-grid">
+          <view class="proc-btn" wx:for="{{processes}}" wx:key="id" data-pid="{{item.id}}" bindtap="goReport">
+            <text class="proc-name">{{item.name}}</text>
+            <text wx:if="{{isAdmin}}" class="proc-price">¥{{item.priceText}}/件</text>
+          </view>
+        </view>
+      </view>
+
+      <view class="wl-card" wx:if="{{isAdmin}}">
+        <view class="wl-h">管理</view>
+        <view class="admin-grid">
+          <view class="admin-btn" bindtap="goDaily">当日汇总</view>
+          <view class="admin-btn" bindtap="goReview">异常复核</view>
+          <view class="admin-btn" bindtap="goProcesses">工序管理</view>
+          <view class="admin-btn" bindtap="goProducts">品类管理</view>
+          <view class="admin-btn" bindtap="goWorkers">工人管理</view>
+          <view class="admin-btn" bindtap="goCalc">回到算价</view>
+        </view>
+      </view>
+
+      <view class="wl-card">
+        <view class="wl-row" bindtap="goMine" style="padding: 8rpx 0;">
+          <view class="wl-grow">
+            <view class="wl-name">我的记录</view>
+            <view class="wl-meta">最近每天的明细和照片</view>
+          </view>
+          <text class="wl-meta">›</text>
+        </view>
+      </view>
+
+    </block>
+
+  </block>
+
+  <!-- 管理员入口：任何时候都能点（首次部署就靠它一键初始化） -->
+  <view class="wl-foot" wx:if="{{ready && !isAdmin}}">
+    <text class="wl-link" bindtap="openPass">管理员入口</text>
+  </view>
+</view>
+
+<view wx:if="{{showPass}}" class="modal-mask" bindtap="closePass">
+  <view class="modal-box" catchtap="noop">
+    <view class="modal-title">管理员入口</view>
+    <text class="modal-text">输入管理口令，把这台设备设为管理员。第一次部署时：你输入的口令会直接成为管理口令，并自动建好数据库，请记牢它。</text>
+    <input class="modal-input" style="margin-top:26rpx" type="text" password placeholder="管理口令"
+           bindinput="onPassInput" confirm-type="done" bindconfirm="submitPass" always-embed="{{true}}" />
+    <view class="modal-actions">
+      <view class="btn secondary modal-btn" bindtap="closePass">取消</view>
+      <view class="btn primary modal-btn" bindtap="submitPass">确定</view>
+    </view>
+  </view>
+</view>

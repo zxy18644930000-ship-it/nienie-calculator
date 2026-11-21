@@ -1,0 +1,48 @@
+<view class="wl-page">
+
+  <view wx:if="{{err}}" class="wl-card">
+    <view class="wl-empty">{{err}}</view>
+    <view class="btn primary wl-btn" bindtap="load">重试</view>
+  </view>
+
+  <block wx:elif="{{ready}}">
+    <view class="wl-card">
+      <view class="wl-h">
+        <view class="filter-row">
+          <view class="wl-chip {{filter === 'pending' ? '' : 'gray'}}" data-f="pending" bindtap="setFilter">待处理</view>
+          <view class="wl-chip {{filter === 'done' ? '' : 'gray'}}" data-f="done" bindtap="setFilter">已处理</view>
+        </view>
+        <view class="wl-chip gray" bindtap="checkNow">{{checking ? '核对中…' : '立即检查'}}</view>
+      </view>
+      <view class="wl-sub">AI 只做预警：工人报的数和 AI 数出的数偏差超过 {{ratioText}}% 才会出现在这里，是否算数由你定。</view>
+    </view>
+
+    <view wx:if="{{!list.length}}" class="wl-card">
+      <view class="wl-empty">{{filter === 'pending' ? '没有待处理的异常，很好' : '还没有处理过的记录'}}</view>
+    </view>
+
+    <view class="wl-card" wx:for="{{list}}" wx:key="id">
+      <view class="wl-row" style="border-bottom:none; padding-top:6rpx;">
+        <view class="wl-grow">
+          <view class="wl-name">{{item.worker}} · {{item.process_name}}</view>
+          <view class="wl-meta">{{item.time_text}}</view>
+        </view>
+        <image class="wl-thumb" src="{{item.photo_url || item.photo}}" mode="aspectFill" data-f="{{item.photo}}" data-u="{{item.photo_url}}" bindtap="previewPhoto" />
+      </view>
+      <view class="dev-line">
+        <text>工人报 <text class="dev-num">{{item.qty}}</text> 件</text>
+        <text>AI 数出 <text class="dev-num">{{item.ai_count}}</text> 件</text>
+        <text>{{item.dev_text}}</text>
+      </view>
+      <view class="act-row" wx:if="{{filter === 'pending'}}">
+        <view class="btn secondary modal-btn" data-id="{{item.id}}" data-r="ok" bindtap="mark">没问题</view>
+        <view class="btn danger modal-btn" data-id="{{item.id}}" data-r="follow" bindtap="mark">要核实</view>
+      </view>
+      <view class="act-row" wx:else>
+        <view class="wl-chip {{item.review === 'follow' ? 'warn' : 'gray'}}">
+          {{item.review === 'follow' ? '已标记：要核实' : '已确认：没问题'}}
+        </view>
+      </view>
+    </view>
+  </block>
+</view>

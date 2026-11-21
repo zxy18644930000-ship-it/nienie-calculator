@@ -1,0 +1,9 @@
+{
+  "name": "summarize",
+  "version": "1.0.0",
+  "description": "报工模块-每日产值快照",
+  "main": "index.js",
+  "dependencies": {
+    "wx-server-sdk": "~2.6.3"
+  }
+}

@@ -1,3 +1,4 @@
 .DS_Store
 .claude/
 miniprogram/cloudfunctions/*/node_modules/
+miniprogram-wx878e372fa0a017e1/cloudfunctions/*/node_modules/

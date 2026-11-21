@@ -1,0 +1,9 @@
+{
+  "triggers": [
+    {
+      "name": "wlSummarizeTimer",
+      "type": "timer",
+      "config": "0 58 23 * * * *"
+    }
+  ]
+}

@@ -1,0 +1,245 @@
+const { call, loading, hideLoading, toastErr, fmtYuan } = require('../../../utils/cloud');
+
+Page({
+  data: {
+    ready: false,
+    err: '',
+    isAdmin: false,
+    pname: '',
+    priceText: '0',
+    photo: '',
+    fileID: '',
+    photoStatus: '',
+    aiSug: null,
+    aiNote: '',
+    productNames: ['（不选）'],
+    productIndex: 0,
+    productLabel: '',
+    qty: 0,
+    todayQty: 0,
+    previewText: '0',
+    submitting: false,
+  },
+
+  onLoad(query) {
+    this.pid = String(query.pid || '');
+    this.load();
+  },
+
+  load() {
+    if (!this.pid) {
+      wx.showToast({ title: '请从首页选工序进入', icon: 'none' });
+      setTimeout(() => wx.navigateBack(), 900);
+      return;
+    }
+    loading('加载中');
+    call('report', { action: 'home' }).then((r) => {
+      hideLoading();
+      const p = (r.processes || []).find((x) => x.id === this.pid);
+      if (!p) {
+        wx.showToast({ title: '这个工序不存在或已停用', icon: 'none' });
+        setTimeout(() => wx.navigateBack(), 900);
+        return;
+      }
+      const todayItem = (r.today.list || []).find((x) => x.id === this.pid);
+      this.setData({
+        ready: true,
+        err: '',
+        isAdmin: r.role === 'admin',
+        pname: p.name,
+        priceText: p.price_text,
+        productNames: ['（不选）'].concat((r.products || []).map((x) => x.name)),
+        productIndex: 0,
+        productLabel: '',
+        qty: 0,
+        todayQty: todayItem ? todayItem.qty : 0,
+        previewText: '0',
+      });
+    }).catch((e) => {
+      hideLoading();
+      this.setData({ ready: true, err: e.message });
+    });
+  },
+
+  calcText(qty, priceText) {
+    const c = Math.round((parseFloat(priceText) || 0) * 100);
+    return fmtYuan((c * qty) / 100);
+  },
+
+  /* 必须现场拍照（不允许从相册选，防止旧图重传） */
+  choosePhoto() {
+    wx.chooseMedia({
+      count: 1,
+      mediaType: ['image'],
+      sourceType: ['camera'],
+      sizeType: ['compressed'],
+      camera: 'back',
+      success: (res) => {
+        const f = res.tempFiles && res.tempFiles[0];
+        if (f && f.tempFilePath) this.handlePhoto(f.tempFilePath);
+      },
+    });
+  },
+
+  /* 拍照后立刻：上传 → 调模型给建议数量。重拍时把上一张已传的照片清掉 */
+  handlePhoto(localPath) {
+    this._photoSeq = (this._photoSeq || 0) + 1;
+    const seq = this._photoSeq;
+    if (this.data.fileID) {
+      wx.cloud.deleteFile({ fileList: [this.data.fileID] }).catch(() => {});
+    }
+    this.setData({ photo: localPath, fileID: '', photoStatus: 'uploading', aiSug: null, aiNote: '' });
+
+    const d = new Date();
+    const p2 = (n) => String(n).padStart(2, '0');
+    const dir = '' + d.getFullYear() + p2(d.getMonth() + 1) + p2(d.getDate());
+    const extM = String(localPath).match(/\.(png|jpe?g|webp)$/i);
+    const ext = extM ? extM[1].toLowerCase() : 'jpg';
+    const path = 'wl_reports/' + dir + '/' + Date.now() + '-' + Math.random().toString(36).slice(2, 7) + '.' + ext;
+
+    /* 先压到 900 宽再上传：模型数得更快、存得也更省（压缩失败就用原图） */
+    wx.compressImage({ src: localPath, quality: 70, compressedWidth: 900 })
+      .catch(() => ({ tempFilePath: localPath }))
+      .then((cres) => {
+        if (seq !== this._photoSeq) return null;
+        const uploadPath = (cres && cres.tempFilePath) || localPath;
+        return wx.cloud.uploadFile({ cloudPath: path, filePath: uploadPath });
+      })
+      .then((res) => {
+        if (!res) return null;
+        if (seq !== this._photoSeq) {
+          /* 已经重拍过了：这张作废删掉 */
+          wx.cloud.deleteFile({ fileList: [res.fileID] }).catch(() => {});
+          return null;
+        }
+        this.setData({ fileID: res.fileID, photoStatus: 'counting' });
+        return call('countPhoto', { fileID: res.fileID });
+      })
+      .then((r) => {
+        if (r === null || seq !== this._photoSeq) return;
+        this.setData({ aiSug: typeof r.count === 'number' ? r.count : null, photoStatus: 'done' });
+        try { wx.vibrateShort({ type: 'light' }); } catch (e) {}
+      })
+      .catch((e) => {
+        if (seq !== this._photoSeq) return;
+        const uploaded = !!this.data.fileID;
+        const msg = String((e && e.message) || '');
+        this.setData({
+          photoStatus: uploaded ? 'done' : 'failed',
+          /* AI 关闭时安静通过（不打扰工人）；其他失败显示原因 + 可重数一次 */
+          aiNote: !uploaded
+            ? '照片上传失败，请重拍'
+            : (msg.indexOf('未开启') >= 0 ? '' : ('AI 没数出来：' + msg.slice(0, 50) + '（自己数一下填吧）')),
+        });
+        if (!uploaded) wx.showToast({ title: '照片上传失败，请重拍', icon: 'none' });
+      });
+  },
+
+  previewPhoto() {
+    if (this.data.photo) wx.previewImage({ urls: [this.data.photo] });
+  },
+
+  clearPhoto() {
+    this._photoSeq = (this._photoSeq || 0) + 1; // 作废在途的上传/数数
+    if (this.data.fileID) {
+      wx.cloud.deleteFile({ fileList: [this.data.fileID] }).catch(() => {});
+    }
+    this.setData({ photo: '', fileID: '', photoStatus: '', aiSug: null, aiNote: '' });
+  },
+
+  /* 点「AI 建议」把建议数量填进输入框 */
+  fillSug() {
+    if (typeof this.data.aiSug !== 'number') return;
+    try { wx.vibrateShort({ type: 'light' }); } catch (e) {}
+    this.setDataPlus(this.data.aiSug);
+  },
+
+  /* 点「重数一次」：照片已传好，直接再让 AI 数一遍，不用重拍 */
+  retryCount() {
+    if (!this.data.fileID || this.data.photoStatus === 'counting') return;
+    this._photoSeq = (this._photoSeq || 0) + 1;
+    const seq = this._photoSeq;
+    this.setData({ photoStatus: 'counting', aiNote: '', aiSug: null });
+    call('countPhoto', { fileID: this.data.fileID })
+      .then((r) => {
+        if (seq !== this._photoSeq) return;
+        this.setData({ aiSug: typeof r.count === 'number' ? r.count : null, photoStatus: 'done' });
+        try { wx.vibrateShort({ type: 'light' }); } catch (e) {}
+      })
+      .catch((e) => {
+        if (seq !== this._photoSeq) return;
+        const msg = String((e && e.message) || '未知原因');
+        this.setData({
+          photoStatus: 'done',
+          aiNote: msg.indexOf('未开启') >= 0 ? '' : ('AI 没数出来：' + msg.slice(0, 50) + '（自己数一下填吧）'),
+        });
+      });
+  },
+
+  onQtyInput(e) {
+    this.setDataPlus(Math.floor(Number(e.detail.value) || 0));
+  },
+
+  /* 手工品名称：从下拉框选（选项由老板在「手工品管理」里维护）；不选=跳过 */
+  onProductChange(e) {
+    const idx = Number(e.detail.value) || 0;
+    const label = idx > 0 ? (this.data.productNames[idx] || '') : '';
+    this.setData({ productIndex: idx, productLabel: label });
+  },
+
+  qtyDelta(e) {
+    const d = Number(e.currentTarget.dataset.d) || 0;
+    try { wx.vibrateShort({ type: 'light' }); } catch (err) {}
+    this.setDataPlus((this.data.qty || 0) + d);
+  },
+
+  setDataPlus(v) {
+    const qty = Math.min(9999, Math.max(0, v));
+    this.setData({ qty, previewText: this.calcText(qty, this.data.priceText) });
+  },
+
+  submit() {
+    if (this._busy) return;
+    if (!this.data.photo) {
+      wx.showToast({ title: '先拍一张照片', icon: 'none' });
+      return;
+    }
+    if (!this.data.fileID) {
+      wx.showToast({ title: this.data.photoStatus === 'uploading' ? '照片还在上传，稍等一下' : '照片上传失败了，请重拍', icon: 'none' });
+      return;
+    }
+    const qty = this.data.qty;
+    if (!(qty >= 1)) {
+      wx.showToast({ title: '填一下这批的数量', icon: 'none' });
+      return;
+    }
+    this._busy = true;
+    this.setData({ submitting: true });
+    loading('提交中');
+
+    const itemName = String(this.data.productLabel || '').trim().slice(0, 20);
+    call('report', { action: 'submit', process_id: this.pid, qty, photo: this.data.fileID, item_name: itemName })
+      .then((r) => {
+        hideLoading();
+        this._busy = false;
+        this._photoSeq = (this._photoSeq || 0) + 1;
+        /* 提交成功后数量归零、照片和品名清空，下一批重新填 */
+        this.setData({ submitting: false, photo: '', fileID: '', photoStatus: '', aiSug: null, aiNote: '', productIndex: 0, productLabel: '', qty: 0, previewText: '0', todayQty: r.today_qty });
+        wx.showToast({ title: '已记 ' + this.data.pname + ' ' + qty + ' 件', icon: 'none' });
+        try { wx.vibrateShort({ type: 'medium' }); } catch (err) {}
+      })
+      .catch((e) => {
+        hideLoading();
+        this._busy = false;
+        this.setData({ submitting: false });
+        const msg = String((e && (e.errMsg || e.message)) || '');
+        if (msg.indexOf('cloud') >= 0 && msg.indexOf('init') >= 0) {
+          wx.showToast({ title: '云开发还没配好，见部署手册', icon: 'none', duration: 3000 });
+        } else {
+          toastErr(e);
+        }
+      });
+  },
+
+  goHome() { wx.reLaunch({ url: '/pages/worklog/home/home' }); },
+});

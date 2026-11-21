@@ -1,0 +1,72 @@
+<view class="wl-page">
+
+  <view wx:if="{{err}}" class="wl-card">
+    <view class="wl-empty">{{err}}</view>
+    <view class="btn primary wl-btn" bindtap="load">重试</view>
+  </view>
+
+  <block wx:elif="{{ready}}">
+
+    <view class="wl-card">
+      <view class="wl-h">
+        <text>{{pname}}</text>
+        <text wx:if="{{isAdmin}}" class="wl-money">¥{{priceText}}/件</text>
+      </view>
+      <view class="wl-sub">今天这个工序已记 {{todayQty}} 件</view>
+    </view>
+
+    <view class="wl-card">
+      <view class="wl-h">第一步 · 拍照</view>
+      <view wx:if="{{!photo}}" class="photo-empty" bindtap="choosePhoto">
+        <text class="photo-plus">＋</text>
+        <text class="photo-tip">点这里拍照（拍刚做完的这一批）</text>
+      </view>
+      <view wx:else>
+        <image class="photo-img" src="{{photo}}" mode="aspectFit" bindtap="previewPhoto" />
+        <view class="photo-status">
+          <text wx:if="{{photoStatus === 'uploading'}}" class="ps-text">照片上传中…</text>
+          <text wx:elif="{{photoStatus === 'counting'}}" class="ps-text">AI 正在数这张照片…（可以先填数量，不耽误）</text>
+          <text wx:elif="{{photoStatus === 'failed'}}" class="ps-text warn">{{aiNote || '照片上传失败，请重拍'}}</text>
+          <text wx:else class="ps-text">照片已就绪</text>
+        </view>
+        <view wx:if="{{aiNote && photoStatus === 'done'}}" class="photo-status">
+          <text class="ps-text warn">{{aiNote}}</text>
+          <view class="retry-btn" bindtap="retryCount">重数一次</view>
+        </view>
+        <view class="photo-actions">
+          <view class="btn ghost" bindtap="choosePhoto">重拍</view>
+          <view class="btn ghost" bindtap="clearPhoto">删掉</view>
+        </view>
+      </view>
+    </view>
+
+    <view class="wl-card">
+      <view class="wl-h">第二步 · 品类</view>
+      <picker mode="selector" range="{{productNames}}" value="{{productIndex}}" bindchange="onProductChange">
+        <view class="picker-box {{productLabel ? '' : 'muted'}}">{{productLabel || '点这里选择'}} ▾</view>
+      </picker>
+    </view>
+
+    <view class="wl-card">
+      <view class="wl-h">第三步 · 数数量</view>
+      <view class="qty-row">
+        <view class="qty-btn" data-d="-1" bindtap="qtyDelta">−</view>
+        <input class="qty-input" type="number" value="{{qty || ''}}" bindinput="onQtyInput" confirm-type="done" />
+        <view class="qty-btn" data-d="1" bindtap="qtyDelta">＋</view>
+      </view>
+      <view wx:if="{{aiSug !== null}}" class="sug-chip" bindtap="fillSug">
+        AI 建议 {{aiSug}} 件 · 点一下填入
+      </view>
+      <view class="wl-sub" style="text-align:center">这批一共做了多少件，就把数字填成多少</view>
+    </view>
+
+    <view class="btn primary wl-btn big {{submitting ? 'off' : ''}}" bindtap="submit">
+      {{qty ? (isAdmin ? '提交（' + qty + ' 件 · ¥' + previewText + '）' : '提交（' + qty + ' 件）') : '提交'}}
+    </view>
+
+    <view class="wl-foot">
+      <text class="wl-link" bindtap="goHome">回首页</text>
+    </view>
+
+  </block>
+</view>
